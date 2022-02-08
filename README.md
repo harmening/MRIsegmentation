@@ -83,7 +83,7 @@ $ rm atra1.0_*.tar; rm atra1.0_*.tar.gz;
 
 
 ### How to start segmentation:
-- The MRI scan needs to be in NIfTI file format (.nii or .nii.gz).
+The MRI scan needs to be in NIfTI file format (.nii or .nii.gz).
 ```bash
 # Change parameters in start_segmentation.m and run 
 $ matlab -r "start_segmentation(./example_head/T1.nii); exit;"
