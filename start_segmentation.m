@@ -31,10 +31,10 @@ function start_segmentation(input_img, T2_optional)
 % (c) Nils Harmening, May 2020
 % Neurotechnology group, Technische Universität Berlin, Germany
 
-CWD = pwd; %mfilename('fullpath');
+CWD = pwd; %erase(mfilename('fullpath'), 'start_segmentation'); %mfilename('fullpath');
 
 % Specify Input
-if nargin <2 || isempty(T2) %no T2 specified
+if nargin <2 || isempty(T2_optional) %no T2 specified
     T2_optional = [];
 end
 %input_img = fullfile(CWD, 'data', 'example.img');
@@ -69,7 +69,7 @@ num_sources = 4000; % number of cortical sources in sourcemodel
 
 
 %% Start segmentation
-Template = fullfile(CWD, 'Huang_et_al_2013', 'eTPM.nii');
+Template = fullfile(CWD, 'MRIsegmentation', 'Huang_et_al_2013', 'eTPM.nii');
 normalize = false; 
 start_seg(input_img, T2_optional, Template, normalize);
 

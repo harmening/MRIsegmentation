@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- given-names: "Nils"
+  family-names: "Harmening"
+  orcid: "https://orcid.org/0000-0002-4150-1915"
+  affiliation: Technische Universität Berlin
+- given-names: "Daniel"
+  family-names: "Miklody"
+  orcid: "https://orcid.org/0000-0002-8709-4200"
+  affiliation: Technische Universität Berlin
+title: "MRIsegmentation"
+version: 1.0
+doi: 10.5281/zenodo.7357674
+url: "https://oi.org/10.5281/zenodo.7357674"
+url: "https://github.com/harmening/MRIsegmentation"
+date-released: 2022-11-24

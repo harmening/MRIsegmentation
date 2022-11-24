@@ -45,27 +45,33 @@ function preprocessing(mri_lst)
 % Prepare atra orientation detection + correction
 [filepath, filename, ext] = fileparts(mri_lst{1});
 imagelist = fullfile(filepath, 'imagelist');
-fileID = fopen(imagelist, 'w');
-for i=numel(mri_lst)
-    fprintf(fileID, strcat(mri_lst{i},'\n'));
+[fileID, message] = fopen(imagelist,'w');
+if fileID < 0
+    error('Failed to open atra imagelist file because: %s', message);
+else
+    for i=numel(mri_lst)
+        fprintf(fileID, strcat(mri_lst{i},'\n'));
+    end
+    fclose(fileID);
 end
-fclose(fileID);
 
 % Run atra
 options = '-v -orient RAS';
 system(['cd ', filepath, ';', 'atra ', options, ' -i ', imagelist]);
 
-% atra clean up
-output = {strcat(filename, '*'), imagelist, 'atra.txt', 'atra_avg_RAS.nii'};
-for i=numel(mri_lst)
-    output{end+1} = mri_lst(i);
-end 
-for file = output
-    try
-      system(['mv ', file, ' ', filepath]);
-    catch
-      disp('Errors during ATRA clean up');
-    end
-end
+% atra clean up % not necessary anymore
+%output = {fullfile(filepath, strcat(filename, '*')), imagelist,
+%          fullfile(filepath, 'atra.txt'),
+%          fullfile(filepath, 'atra_avg_RAS.nii')}; 
+%for i=numel(mri_lst)
+%    output{end+1} = mri_lst(i);
+%end 
+%for file = output
+%    try
+%      system(['mv ', file, ' ', filepath]);
+%    catch e
+%      fprintf(1,'Error during ATRA clean up:\n%s\n',e.message);
+%    end
+%end
 
 end %preprocessing

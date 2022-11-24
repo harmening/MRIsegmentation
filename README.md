@@ -1,12 +1,15 @@
 # MRIsegmentation
+[![DOI](https://zenodo.org/badge/457134654.svg)](https://zenodo.org/badge/latestdoi/457134654)
 ### Automatic MRI segmentation pipeline for consistent [FEM](https://en.wikipedia.org/wiki/Finite_element_method) and [BEM](https://en.wikipedia.org/wiki/Boundary_element_method) mesh creation from MRI scans of human heads
 **0. <ins>[Install prerequisites](#Prerequisites)</ins>**<br>
 **1. <ins>[Translation to ACPC-coordinate system](#translation-to-acpc)<ins>**<br>
 **2. <ins>[Tissue segmentation (Scalp, Skull, CSF, White Matter, Gray Matter)](#tissue-segmentation)</ins>**<br>
 **3. <ins>[Surface and Volume Mesh construction](#mesh-construction)</ins>**<br>
 **4. <ins>[Correction and smoothing of segmentation mistakes](#correction-and-smoothing)</ins>**<br>
-**5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-and-sourcemodel-alignement)</ins>**<br>
-**6. <ins>[Parallelized Computing](#run-full-pipeline)</ins>**<br>
+**5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-alignement)</ins>**<br>
+**6. <ins>[Cortical sourcemodel creation](#sourcemodel-creation)</ins>**<br>
+**7. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
+**7. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
 **A. <ins>[References](#references)</ins>**<br>
 <br>
 <br>
@@ -83,7 +86,7 @@ $ rm atra1.0_*.tar; rm atra1.0_*.tar.gz;
 
 
 ### How to start segmentation:
-The MRI scan needs to be in NIfTI file format (.nii or .nii.gz).
+- The MRI scan needs to be in NIfTI file format (.nii or .nii.gz).
 ```bash
 # Change parameters in start_segmentation.m and run 
 $ matlab -r "start_segmentation(./example_head/T1.nii); exit;"
@@ -170,9 +173,18 @@ voxel-wise transformation mapping from the eTPM (in MNI space) to the individual
 
 
 ## Troubleshooting
-- SPM12 sometimes failes due to fieldtrip routines replacing standard matlab
+- SPM12 sometimes fails due to fieldtrip routines replacing standard matlab
   routines. Make sure to delete (or remove from matlab search path) older matlab version folders from `./fieldtrip/compat/` and `./fieldtrip/external/spm12/external/fieldtrip/compat/`. For more information visit [https://github.com/fieldtrip/fieldtrip/blob/master/compat](https://github.com/fieldtrip/fieldtrip/blob/master/compat/matlablt2010b/README).
-
+- Atra sometimes fails to correctly detect anatomical landmarks and one
+  needs to manually specify the voxel coordinates of AC, PC and the vertex of
+  the superior pontine sulcus (VSPS). Delete all files from your MRI folder
+  exept the original MRI and the file `imagelist`. Create a new file called
+  `landmarks.lm` and write the voxel coordinates of AC, PC and VSPS in the first, second and third line, respectively, seperated by one whitespace. Open `imagelist`, write the fullpath into the second line of `landmarks.lm` and restart the segmentation. For more details refer to [getting started with atra](https://www.nitrc.org/account/login.php?return_to=%2Ffrs%2Fdownload.php%2F10497%2Fgettingstartedwithatra1.0.pdf&feedback=The+tool%2Fresource+administrator+has+requested+that+you+log+in+to+download+this+file.) or [atra youtube tutorial](https://www.youtube.com/watch?v=q5GBaNnjOa8).
+<!--- 
+mri = ft_read_mri('/fullpath/to/example.nii');
+cfg = []; cfg.anaparameter = 'anatomy';
+ft_sourceplot(cfg, mri);
+--->
 <br>
 <br>
 
