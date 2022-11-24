@@ -10,7 +10,7 @@ authors:
   orcid: "https://orcid.org/0000-0002-8709-4200"
   affiliation: Technische Universität Berlin
 title: "MRIsegmentation"
-version: 1.0
+version: 1.1
 doi: 10.5281/zenodo.7357674
 url: "https://oi.org/10.5281/zenodo.7357674"
 url: "https://github.com/harmening/MRIsegmentation"
