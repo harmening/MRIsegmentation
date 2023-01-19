@@ -9,7 +9,7 @@
 **5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-alignement)</ins>**<br>
 **6. <ins>[Cortical sourcemodel creation](#sourcemodel-creation)</ins>**<br>
 **7. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
-**7. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
+**8. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
 **A. <ins>[References](#references)</ins>**<br>
 <br>
 <br>
@@ -60,10 +60,10 @@ $ make external-distclean
 $ make external && make external-install
 $ cd ../../../../ && rm spm12.zip
 # Install CAT12
-$ wget -P ./ http://www.neuro.uni-jena.de/cat12/cat12_r1743.zip
+$ wget -P ./ http://www.neuro.uni-jena.de/cat12/cat12_r2159.zip
 $ rm -r ./fieldtrip/external/spm12/toolbox/cat12
-$ unzip cat12_r1743.zip -d ./fieldtrip/external/spm12/toolbox/
-$ rm cat12_r1743.zip
+$ unzip cat12_r2159.zip -d ./fieldtrip/external/spm12/toolbox/
+$ rm cat12_r2159.zip
 # Install iso2mesh
 $ git clone https://github.com/fangq/iso2mesh.git
 # Download Andy's tools
@@ -185,6 +185,23 @@ mri = ft_read_mri('/fullpath/to/example.nii');
 cfg = []; cfg.anaparameter = 'anatomy';
 ft_sourceplot(cfg, mri);
 --->
+<br>
+<br>
+
+
+## Citing
+If you find MRIsegmentation useful for your research, please consider citing:
+```
+@software{Harmening_MRIsegmentation_2022,
+        author = {Harmening, Nils and Miklody, Daniel},
+        doi = {10.5281/zenodo.7357674},
+        month = {11},
+        title = {{MRIsegmentation}},
+        url = {https://github.com/harmening/MRIsegmentation},
+        version = {1.1},
+        year = {2022}
+}
+```
 <br>
 <br>
 

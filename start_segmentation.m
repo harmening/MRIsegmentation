@@ -69,7 +69,7 @@ num_sources = 4000; % number of cortical sources in sourcemodel
 
 
 %% Start segmentation
-Template = fullfile(CWD, 'MRIsegmentation', 'Huang_et_al_2013', 'eTPM.nii');
+Template = fullfile(CWD, 'Huang_et_al_2013', 'eTPM.nii');
 normalize = false; 
 start_seg(input_img, T2_optional, Template, normalize);
 
@@ -97,8 +97,10 @@ atlas = fullfile(cat12_path, 'atlases_surfaces', ...
                  'lh.aparc_DK40.freesurfer.annot');
 %dartelTpm = fullfile(cat12_path, 'templates_1.50mm', ...
 %                     'Template_1_IXI555_MNI152.nii'); % version 12
-dartelTpm = fullfile(cat12_path, 'templates_volumes',  ...
-                     'Template_1_IXI555_MNI152.nii'); % version 12.7
+%dartelTpm = fullfile(cat12_path, 'templates_volumes',  ...
+%                     'Template_1_IXI555_MNI152.nii'); % version 12.7
+dartelTpm = fullfile(cat12_path, 'templates_MNI152NLin2009cAsym',  ...
+                     'Template_1_Dartel.nii'); % version 12.8
 start_cat(input_img, atlas, dartelTpm);
 read_cat(cat12_path, input_img, num_sources);
 
