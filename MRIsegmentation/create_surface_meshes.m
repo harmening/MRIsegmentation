@@ -28,7 +28,7 @@ function create_surface_meshes(input_img, numvertices, input_coordsys, ...
 % Neurotechnology group, Technische Universität Berlin, Germany
 
 [dirname, base_filename, ext] = fileparts(input_img);
-if nargin > 3
+if nargin > 1
   numverts = numvertices;
 else
   numverts = 1922;
@@ -36,7 +36,7 @@ end
 
 %% Create segmentation struct
 mri = ft_read_mri(input_img);
-if nargin > 4
+if nargin > 2
   segmentedmri.coordsys = input_coordsys;
 else
   segmentedmri.coordsys = 'acpc';
@@ -77,7 +77,7 @@ if ~numel(dir(fullfile(dirname,'segmentedmri.mat')))
 end
 clear c1 c2 c3 c4 c5 c6
 
-if nargin > 5
+if nargin > 3
   segmentedmri.anatomy = mri.anatomy;
   segmentedmri = ft_convert_coordsys(segmentedmri, output_coordsys);
   save(fullfile(dirname,strcat('segmentedmri_',output_coordsys)), ...
@@ -103,7 +103,7 @@ clear segmentedmri
 %% Correct outliers and smooth skull&brain&csf
 if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                        '_corrected.mat'))))
-    load(fullfile(dirname,'bnd4_1922'));
+    load(fullfile(dirname, strcat('bnd4_', num2str(numverts))));
     error_threshold = 25;
     smooth_meshes = [1 2 3 4];
     new_bnd = correct_bnd_errors(bnd, error_threshold, smooth_meshes);

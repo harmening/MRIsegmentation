@@ -32,10 +32,10 @@ if nargin > 2
 else
   maxvol = 1;       % default resolution
 end
-if nargin < 6
+if nargin < 4
   dofix = 1;        %  defult 1: mesh repair
 end
-if nargin < 7;
+if nargin < 5;
   downsample = 1;   % default is no downsampling
 end
 

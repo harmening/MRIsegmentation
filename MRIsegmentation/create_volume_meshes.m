@@ -33,7 +33,7 @@ end
 
 %% Create segmentation struct
 mri = ft_read_mri(input_img);
-if nargin > 4
+if nargin > 2
   segmentedmri.coordsys = input_coordsys;
 else
   segmentedmri.coordsys = 'acpc';
@@ -57,7 +57,7 @@ segmentedmri.gray = c5.anatomy;
 segmentedmri.white = c6.anatomy;
 clear c1 c2 c3 c4 c5 c6
 
-if nargin > 5
+if nargin > 3
   segmentedmri.anatomy = mri.anatomy;
   segmentedmri = ft_convert_coordsys(segmentedmri, output_coordsys);
 end
@@ -66,7 +66,7 @@ end
 if ~numel(dir(fullfile(dirname,strcat('mesh6_maxvox',num2str(maxvoxelvol),...
                                       '.mat'))))
     tissue = {'air', 'scalp','skull','csf','gray','white'};
-    mesh = prepare_mesh_iso2mesh(segmentedmri, tissue, maxvoxelvol); 
+    mesh = prepare_mesh_iso2mesh(segmentedmri, tissue, maxvoxelvol);
     save(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol),...
                                  '.mat')), 'mesh');
     savemsh(mesh.pos, [mesh.tet mesh.tissue], ...

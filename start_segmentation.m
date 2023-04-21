@@ -57,8 +57,8 @@ num_sources = 4000; % number of cortical sources in sourcemodel
 %% preprocess)
 %if T2_optional
 %  preprocessing({input_img, T2_optional})
-%  [T2_filepath, T2_name, T2_ext] = fileparts(T2);
-%  T2 = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
+%  [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
+%  T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
 %  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
 %else
 %  T2_optional = [];
