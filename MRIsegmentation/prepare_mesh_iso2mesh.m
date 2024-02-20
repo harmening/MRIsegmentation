@@ -94,11 +94,13 @@ end
 % check for exisiting iso2mesh toolbox
 ft_hastoolbox('iso2mesh', 1);
 
-opt = 2;
+opt = 2; %2 for FEM % 5 for fNIRS
 isovalues = numel(tissue);
 [node, elem, face] = vol2mesh(seg_ints, 1:seg.dim(1), 1:seg.dim(2), ...
                               1:seg.dim(3), opt, maxvol, dofix, 'cgalmesh');
 
+[no, fa] = removeisolatednode(node,face(:,1:3));
+face = [fa face(:,4)];
 [no, el] = removeisolatednode(node,elem(:,1:4));
 newelem = meshreorient(no(:,1:3),el(:,1:4));
 node = no;
@@ -106,13 +108,13 @@ elem = [newelem elem(:,5)];
 
 mesh = [];
 mesh.pos = ft_warp_apply(seg.transform, node(:,1:3));
+mesh.poslabel = node(:,4);
 %mesh.tet = elem(:,[1 2 4 3]); % re-order elements % NO
 mesh.tet = elem(:,1:4);
-mesh.tissue = elem(:,5);
-%mesh.poslabel = nodem(:,4);
-%mesh.tri = face(:,1:3);%(:,1:3);
-%mesh.trilabel = face(:,4);
-mesh.tissuelabel = tissue;
+mesh.tetlabel = elem(:,5);
+mesh.tri = face(:,1:3);
+mesh.trilabel = face(:,4);
+mesh.tissues = tissue;
 
 % copy the geometrical units from the input to the output
 if isfield(seg, 'unit')

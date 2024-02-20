@@ -49,22 +49,24 @@ end
 
 % DEFAULT MESH SIZE SETTINGS:
 num_vertices = 1922; % number of vertices of every surface mesh
+%10000
 maxvoxelvolume = 2; % max volume per tetrahedra of volume mesh
 num_sources = 4000; % number of cortical sources in sourcemodel
+%10000
 
 
 %% Optional preprocessing + translation to ACPC (uncomment if you don't want to
 %% preprocess)
-%if T2_optional
-%  preprocessing({input_img, T2_optional})
-%  [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
-%  T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
-%  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
-%else
-%  T2_optional = [];
-%  preprocessing({input_img});
-%  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
-%end
+if T2_optional
+  preprocessing({input_img, T2_optional})
+  [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
+  T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
+  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+else
+  T2_optional = [];
+  preprocessing({input_img});
+  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+end
 
 
 
@@ -84,13 +86,13 @@ create_surface_meshes(input_img, Template, num_vertices);
 create_volume_meshes(input_img, maxvoxelvolume);
 %, input_coordsys, output_coordsys); 
 
-%%% Align electrodes and fiducials (nonlinear)
+%% Align electrodes and fiducials (nonlinear)
 [dirname, base_filename, ext] = fileparts(input_img);
 load(fullfile(dirname, strcat('bnd4_', num2str(num_vertices), ...
               '_corrected.mat')));
 align_nonlinear(input_img, new_bnd(1));
 
-%%% Create sourcemodel
+%% Create sourcemodel
 cat12_path = fullfile(CWD, 'fieldtrip', 'external', 'spm12', 'toolbox', ...
                       'cat12');
 atlas = fullfile(cat12_path, 'atlases_surfaces', ...
@@ -103,8 +105,14 @@ dartelTpm = fullfile(cat12_path, 'templates_MNI152NLin2009cAsym',  ...
                      'Template_1_Dartel.nii'); % version 12.8
 start_cat(input_img, atlas, dartelTpm);
 read_cat(cat12_path, input_img, num_sources);
+% For spherical harmonics
+read_cat_SPHARM(cat12_path, input_img, 40962-2); %40962 is the spahrm size
 
-%%% Transform electrodes, sourcemodels and meshes to ctf coordinate system
-transform_to_ctf(input_img);
+%% Transform electrodes, sourcemodels and meshes to ctf coordinate system
+transform_to_ctf(input_img, num_vertices);
+
+%% SPHARM
+spharm_dir = fullfile(CWD, 'weighted-SPHARM', 'sph', 'sph');
+spharm(input_img, spharm_dir);
 
 end % start_segmentation

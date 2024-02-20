@@ -1,4 +1,4 @@
-function read_cat(cat12_path, input_img, num_sources);
+function read_cat_SPHARM(cat12_path, input_img, num_sources);
 %
 % Input:        cat12_path <string> fullpath to cat12 installation.
 %               input_img <string> fullpath to T1 MRI image to be segmented by
@@ -21,7 +21,7 @@ function read_cat(cat12_path, input_img, num_sources);
 % Neurotechnology group, Technische Universität Berlin, Germany
 
 [dirname, name, ext] = fileparts(input_img);
-if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
+if ~numel(dir(fullfile(dirname, strcat('cortex_surf', num2str(num_sources), ...
                                        '.mat'))))
   %% Important CAT12 output files
   fn_tess_lh = fullfile(dirname, 'surf', strcat('lh.central.', name, '.gii'));
@@ -116,51 +116,16 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
     nrms(nan_idx(idx),:) = nrm;
     end
   end
-  sourcemodel = [];
-  sourcemodel.pos = pos;
-  sourcemodel.tri = tri;
-  sourcemodel.vec = nrms;
-  sourcemodel.unit = 'mm';
-  sourcemodel.inside = true(length(sourcemodel.pos), 1);
-  save(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
-                                '.mat')), 'sourcemodel');
-  om_save_tri(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
-                                       '.tri')), sourcemodel.pos, ...
-              sourcemodel.tri);
+  cortex_surf = [];
+  cortex_surf.pos = pos;
+  cortex_surf.tri = tri;
+  cortex_surf.vec = nrms;
+  cortex_surf.unit = 'mm';
+  save(fullfile(dirname, strcat('cortex_surf', num2str(size(pos, 1)), '.mat')), ...
+       'cortex_surf');
 
-
-  nrms = sourcemodel.vec;
-  if (sum(sum(isnan(nrms))) > 0)
-    % Correct normals by using the average normal of neighboring vertices
-    [row, col] = find(isnan(nrms));
-    nan_idx = unique(row);
-    for idx = 1:length(nan_idx)
-      [row, col] = find(tri == nan_idx(idx));
-      neighbors = [];
-      t = unique(row);
-      if sum(t) == 0
-        disp('found no tris!')
-        disp(t)
-      end
-      for t_idx = 1:length(t)
-        neighbors = [neighbors; tri(t(t_idx),1); tri(t(t_idx),2); ...
-                     tri(t(t_idx),3)];
-      end
-      neighbors = unique(neighbors(neighbors~=nan_idx(idx)));
-      nrm = nansum(nrms(neighbors,:),1);
-      nrm = nrm / norm(nrm);
-      nrms(nan_idx(idx),:) = nrm;
-    end
-    if (sum(sum(isnan(nrms))) > 0)
-      disp(strcat('Could not compute ', num2str(sum(sum(isnan(nrms)))), ...
-                  'sourcemodel normals in ', dirname))
-    end
-  end
-  sourcemodel.vec = nrms;
-  save(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), '.mat')),...
-         'sourcemodel');
 end
-end %read_cat
+end %read_cat_SPHARM
 
 
 
@@ -202,11 +167,11 @@ function [NewTessMat, I, J] = tess_downsize(bnd, newNbVertices)
   NewTessMat.Comment = bnd.Comment;
   I = [];
   J = [];
-  oldNbVertices = size(bnd.pos, 1);
-  if (newNbVertices >= oldNbVertices)
+  if (newNbVertices >= size(bnd.pos, 1))
         disp(sprintf('TESS> Surface has ', num2str(oldNbVertices), ... 
                      'vertices out of ', num2str(newNbVertices)));
-        newNbVertices = oldNbVertices;
+        NewTessMat = bnd;
+        return;
   end
 
 	% Prepare variables

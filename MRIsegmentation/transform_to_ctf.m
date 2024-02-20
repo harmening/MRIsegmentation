@@ -1,4 +1,4 @@
-function transform_to_ctf(input_img)
+function transform_to_ctf(input_img, numverts)
 %
 % Input:        input_img <string> fullpath to T1 MRI image to be segmented
 % 
@@ -24,6 +24,8 @@ nas = fiducials_aligned.chanpos(1,:);
 lpa = fiducials_aligned.chanpos(2,:);
 rpa = fiducials_aligned.chanpos(3,:);
 
+transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
+save(fullfile(dirname, 'ctf', 'acpc2ctf.mat'), 'transform');
 
 %% Convert meshes
 cfg = [];
@@ -57,6 +59,15 @@ if numel(dir(fullfile(dirname, 'mesh6_maxvoxvol2.mat')))
   %mesh = ft_meshrealign(cfg, mesh);
   save(fullfile(dirname, 'ctf', strcat('mesh6_maxvoxvol2.mat')), 'mesh');
 end
+
+%% Convert cortex surface for SPHARM
+transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
+cortex_surf_files = {'cortex_surf40962'};
+for cortexfile = cortex_surf_files
+  load(fullfile(dirname, strcat(char(cortexfile), '.mat')));
+  cortex_surf = ft_transform_geometry(transform, cortex_surf);
+  save(fullfile(dirname, 'ctf', strcat(char(cortexfile), '.mat')), ...
+       'cortex_surf');
 
 %% Convert electrodes
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');

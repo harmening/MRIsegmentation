@@ -9,7 +9,8 @@
 **5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-alignement)</ins>**<br>
 **6. <ins>[Cortical sourcemodel creation](#sourcemodel-creation)</ins>**<br>
 **7. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
-**8. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
+**8. <ins>[Representing the cortical surface in Spherical Harmonics (SPHARM)](#representing-the-cortical-surface-in-Spherical-Harmonics-(SPHARM))</ins>**<br>
+**9. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
 **A. <ins>[References](#references)</ins>**<br>
 <br>
 <br>
@@ -23,7 +24,8 @@
 * [iso2mesh](http://iso2mesh.sourceforge.net)	[[4]](#ref4)
 * [Computational Anatomy Toolbox (CAT12)](http://www.neuro.uni-jena.de/cat/)	[[5]](#ref5)
 * [fieldtrip](http://www.fieldtriptoolbox.org/) [[6]](#ref6)
-* [Open Access Series of Imaging Studies (OASIS)](http://oasis-brains.org/) [[7]](#ref7) <br>
+* [weighted SPHARM](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/) [[7]](#ref7)
+* [Open Access Series of Imaging Studies (OASIS)](http://oasis-brains.org/) [[8]](#ref8) <br>
 <br>
 
 <!--- 
@@ -82,7 +84,7 @@ $ gunzip atra1.0_*.tar.gz
 $ tar -xvf atra1.0_*.tar
 $ rm atra1.0_*.tar; rm atra1.0_*.tar.gz;
 ```
-
+- If desired, download the weighted-SPHARM by following the description of [Chung et al.](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/).
 
 
 ### How to start segmentation:
@@ -139,7 +141,7 @@ $ python parallel.py ./data/MRI_scan1/T1.nii ./data/MRI_scan2/T1.img ./data/MRI_
 <br>
 
 ## Correction and smoothing 
-- Tests on the [OASIS1 database](http://oasis-brains.org/) of 416 human heads [[7]](#ref7) revealed, that 
+- Tests on the [OASIS1 database](http://oasis-brains.org/) of 416 human heads [[8]](#ref8) revealed, that 
 <img align="right" width="250" src="images/cortex_correct.gif"> <br>
   10 out of 416 segmentations needed further correction of the cortical <br>
   surface mesh only (see segmentation error and correction to the right).
@@ -170,6 +172,12 @@ voxel-wise transformation mapping from the eTPM (in MNI space) to the individual
  - The individual fiducials (NAS, LPA, RPA) are gained through SPMs nonlinear mapping from the eTPM template.<br>
 <br>
 <br>
+
+
+## Representing the cortical surface in Spherical Harmonics (SPHARM)
+ - The weighed spherical harmonic (weighted-SPHARM) representation can express the cortical surface as a weighted linear combination of spherical harmonics.
+ - Since SPHARM is a better basis for the proper description of the cortex folding as the euclidean space, it is used in many different applications [[7]](#ref7).
+
 
 
 ## Troubleshooting
@@ -283,5 +291,7 @@ The whole robust segmentation pipeline can be run via `main.m` or parallelized v
 <!---  \cite{Gaser2016} --->
 <a id="ref6">[6]</a>  Robert Oostenveld, Pascal Fries, Eric Maris, Jan-Mathijs Schoffelen. "FieldTrip: Open Source Software for Advanced Analysis of MEG, EEG, and Invasive Electrophysiological Data" *Computational intelligence and neuroscience*, (2011), 156869. [``doi:10.1155/2011/156869``](https://doi.org/10.1155/2011/156869). <br> 
 <!---  \cite{Fieldtrip11}  --->
-<a id="ref7">[7]</a>  Daniel S. Marcus, Tracy H. Wang, Jamie Parker, John G. Csernansky, John C. Morris, Randy L. Buckner. "Open Access Series of Imaging Studies (OASIS): Cross-sectional MRI Data in Young, Middle Aged, Nondemented, and Demented Older Adults" *Journal of Cognitive Neuroscience*, (2007): **19**(9), 1498-1507. [``doi:10.1162/jocn.2007.19.9.1498``](https://doi.org/10.1162/jocn.2007.19.9.1498). <br> 
+<a id="ref7">[7]</a>  Moo K. Chung, Kim M. Dalton, Li Shen, Alan C. Evans, Richard J. Davidson. "Weighted Fourier Series Representation and Its Application to Quantifying the Amount of Gray Matter" *IEEE Transactions on Mecical Imaging*, (2007): **26**(4). [``10.1109/TMI.2007.892519``](https://doi.org/10.1109/TMI.2007.892519). <br>
+<!---  \cite{Chung2007}  --->
+<a id="ref8">[8]</a>  Daniel S. Marcus, Tracy H. Wang, Jamie Parker, John G. Csernansky, John C. Morris, Randy L. Buckner. "Open Access Series of Imaging Studies (OASIS): Cross-sectional MRI Data in Young, Middle Aged, Nondemented, and Demented Older Adults" *Journal of Cognitive Neuroscience*, (2007): **19**(9), 1498-1507. [``doi:10.1162/jocn.2007.19.9.1498``](https://doi.org/10.1162/jocn.2007.19.9.1498). <br> 
 <!--- \cite{OASIS2007}  --->
