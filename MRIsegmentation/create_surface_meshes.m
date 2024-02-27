@@ -29,7 +29,7 @@ function create_surface_meshes(input_img, numvertices, input_coordsys, ...
 
 [dirname, base_filename, ext] = fileparts(input_img);
 if nargin > 1
-  numverts = str2num(numvertices);
+  numverts = numvertices;
 else
   numverts = 1922;
 end

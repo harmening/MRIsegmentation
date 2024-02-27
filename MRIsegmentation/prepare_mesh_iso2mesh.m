@@ -99,9 +99,12 @@ isovalues = numel(tissue);
 [node, elem, face] = vol2mesh(seg_ints, 1:seg.dim(1), 1:seg.dim(2), ...
                               1:seg.dim(3), opt, maxvol, dofix, 'cgalmesh');
 
-[no, fa] = removeisolatednode(node,face(:,1:3));
-face = [fa face(:,4)];
-[no, el] = removeisolatednode(node,elem(:,1:4));
+try
+  [no, el, fa] = removeisolatednode(node,elem(:,1:4), face(:,1:3));
+  face = [fa face(:,4)];
+catch
+  [no, el] = removeisolatednode(node,elem(:,1:4));
+end
 newelem = meshreorient(no(:,1:3),el(:,1:4));
 node = no;
 elem = [newelem elem(:,5)];

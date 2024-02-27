@@ -1,8 +1,6 @@
-function spharm(input_img, spharm_dir)
+function spharm(input_img, L)
 %
 % Input:        input_img <string> fullpath to T1 MRI image to be segmented
-% Input:        spharm_dir <string> fullpath to spherical harmonics (will be
-%                                   created if not existing)
 % 
 % This function constructs the weighted-SPHARM representation from the cortex
 % surface (output of read_cat.m). It does the follwoing:
@@ -15,36 +13,45 @@ function spharm(input_img, spharm_dir)
 %    representation.
 %
 % Example:
-% spharm('/tmp/head/1/T1.nii', '~/MRIsegmentation/weighted-SPHARM/sph/sph');
+% spharm('/tmp/head/1/T1.nii')
 % 
 % (c) Nils Harmening, February 2024
 % Neurotechnology group, Technische Universität Berlin, Germany
 
 [dirname, base_filename, ext] = fileparts(input_img);
 
-%% Construct SPHARM
-if ~numel(strcat(spharm_dir, '0.mat'))
-  SPHARMconstruct(spharm_dir, 85);
-end
 
+%% Load hemisphere surfaces and their corresponding sphere meshes
+load(fullfile(dirname, 'ctf', 'lh_surf.mat'))
+bnd_lh.vertices = bnd_lh.pos;
+bnd_lh.faces = bnd_lh.tri;
+load(fullfile(dirname, 'ctf', 'lh_sphere.mat'))
+lh_sphere.vertices = lh_sphere.pos;
+lh_sphere.faces = lh_sphere.tri;
 
-%% Load cortex surface
-load(fullfile(dirname, 'ctf', 'cortex_surf40962.mat'));
-coord = cortex_surf.pos';
-tri = cortex_surf.tri;
+load(fullfile(dirname, 'ctf', 'rh_surf.mat'))
+bnd_rh.vertices = bnd_rh.pos;
+bnd_rh.faces = bnd_rh.tri;
+load(fullfile(dirname, 'ctf', 'rh_sphere.mat'))
+rh_sphere.vertices = rh_sphere.pos;
+rh_sphere.faces = rh_sphere.tri;
+
 
 
 %% Get the weighted-SPHARM representation. In order to smooth with up to 78th degree weighted-SPHARM with bandwidth 0.0001 (Figure 1), run 
-L=78;
 sigma=0.0001;
-[coord_smooth,fourier_coeff] = SPHARMsmooth(spharm_dir, coord,L,sigma);
+[lh_surf_smooth, lh_fourier_coeff]=SPHARMsmooth2(bnd_lh,lh_sphere,L,sigma);
+[rh_surf_smooth, rh_fourier_coeff]=SPHARMsmooth2(bnd_rh,rh_sphere,L,sigma);
 
 
 %% Extracting Spherical harmonic coefficients
-k = L; %50;
-fourier_vector=SPHARMvectorize(fourier_coeff,k)
+k = L; %78;
+lh_fourier_vector=SPHARMvectorize(lh_fourier_coeff,k);
+save(fullfile(dirname, 'ctf', 'lh_fourier_coeff.mat'), 'lh_fourier_coeff', '-v7');
+save(fullfile(dirname, 'ctf', 'lh_fourier_vector.mat'), 'lh_fourier_vector', '-v7');
 
-save(fullfile(dirname, 'ctf', 'fourier_coeff.mat'), 'fourier_coeff', '-v7');
-save(fullfile(dirname, 'ctf', 'fourier_vector.mat'), 'fourier_vector', '-v7');
+rh_fourier_vector=SPHARMvectorize(rh_fourier_coeff,k);
+save(fullfile(dirname, 'ctf', 'rh_fourier_coeff.mat'), 'rh_fourier_coeff', '-v7');
+save(fullfile(dirname, 'ctf', 'rh_fourier_vector.mat'), 'rh_fourier_vector', '-v7');
 
 end %spharm

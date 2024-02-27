@@ -36,12 +36,29 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
   if ~isempty(fn_tess_lh)
       bnd_lh = import_gii_surfaces(fn_tess_lh);
       num_verts_orig_l = size(bnd_lh.pos, 1);
+      save(fullfile(dirname, 'surf', 'lh_surf.mat'), 'bnd_lh');
+      om_save_tri(fullfile(dirname, 'surf', 'lh_surf.tri'), bnd_lh.pos, bnd_lh.tri);
+  end
+  % left corresponding sphere mesh
+  if ~isempty(fn_tess_lsph)
+      lh_sphere = import_gii_surfaces(fn_tess_lsph);
+      save(fullfile(dirname, 'surf', 'lh_sphere.mat'), 'lh_sphere');
+      om_save_tri(fullfile(dirname, 'surf', 'lh_sphere.tri'), lh_sphere.pos, lh_sphere.tri);
   end
   % right pial
   if ~isempty(fn_tess_rh)
       bnd_rh = import_gii_surfaces(fn_tess_rh);
       num_verts_orig_r = size(bnd_rh.pos, 1);
+      save(fullfile(dirname, 'surf', 'rh_surf.mat'), 'bnd_rh');
+      om_save_tri(fullfile(dirname, 'surf', 'rh_surf.tri'), bnd_rh.pos, bnd_rh.tri);
   end
+  % right corresponding sphere mesh
+  if ~isempty(fn_tess_rsph)
+      rh_sphere = import_gii_surfaces(fn_tess_rsph);
+      save(fullfile(dirname, 'surf', 'rh_sphere.mat'), 'rh_sphere');
+      om_save_tri(fullfile(dirname, 'surf', 'rh_sphere.tri'), rh_sphere.pos, rh_sphere.tri);
+  end
+
 
   %% Import CAT12 cortical thicknesses
   if ~isempty(fn_thick_lh) && ~isempty(fn_thick_lh)
@@ -73,8 +90,9 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
   end
   if ~isempty(fn_tess_lh)
       disp(strcat('Import CAT12 folder', 'Downsampling left pial.'));
-      [tess_lf_low, i_lh_low, x_lh_low] = tess_downsize(bnd_lh, num_vertshemi);
+      [tess_lh_low, i_lh_low, x_lh_low] = tess_downsize(bnd_lh, num_vertshemi);
   end
+
 
   %% Merge hemispheres
   if ~isempty(fn_tess_lh) && ~isempty(fn_tess_rh)
@@ -82,7 +100,7 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
       cortex_high  = tess_concatenate({bnd_lh, bnd_rh}, ...
                                    sprintf('cortex_%dV', num_verts_orig_l ...
                                            + num_verts_orig_r), 'Cortex');
-      cortex_low = tess_concatenate({tess_lf_low, tess_rh_low}, ...
+      cortex_low = tess_concatenate({tess_lh_low, tess_rh_low}, ...
                                    sprintf('cortex_%dV', length(x_lh_low) + ...
                                                          length(x_rh_low)), ...
                                            'Cortex');
@@ -182,7 +200,7 @@ function new_bnd = import_gii_surfaces(filename)
 			else
 					new_bnd = Tess;
 			end
-      [tmp__, fBase, fExt] = bst_fileparts(filename);
+      [tmp__, fBase, fExt] = fileparts(filename);
       importedBaseName = [fBase, strrep(fExt, '.', '_')];
       importedBaseName = strrep(importedBaseName, 'tess_', '');
       importedBaseName = strrep(importedBaseName, '_tess', '');

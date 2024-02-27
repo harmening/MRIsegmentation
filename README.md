@@ -84,7 +84,7 @@ $ gunzip atra1.0_*.tar.gz
 $ tar -xvf atra1.0_*.tar
 $ rm atra1.0_*.tar; rm atra1.0_*.tar.gz;
 ```
-- If desired, download the weighted-SPHARM by following the description of [Chung et al.](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/).
+- If desired, download the weighted-SPHARM ([`SPHARMsmooth2.m`](https://pages.stat.wisc.edu/~mchung/research/amygdala/SPHARMsmooth2.m), [`SPHARMvectorize.m`](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/SPHARMvectorize.m)) into `./weighted-SPHARM` by following the [description of Chung et al.](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/).
 
 
 ### How to start segmentation:

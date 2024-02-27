@@ -1,6 +1,9 @@
-function transform_to_ctf(input_img, numverts)
+function transform_to_ctf(input_img, numverts, maxvoxelvol, num_sources)
 %
 % Input:        input_img <string> fullpath to T1 MRI image to be segmented
+%               numvertices <integer> number of desired mesh vertices.
+%               maxvoxelvol <float> desired maximal volume per tetrahedra
+%               num_sources <integer> number of sourcemodel points.
 % 
 % This function transforms all coordinate system depending results of this
 % segmentaion pipeline into the ctf coordinate system. It does the follwoing:
@@ -37,37 +40,64 @@ cfg.fiducial.rpa  = rpa; %position of RPA
 
 new_bnd = [];
 new_bnd.coordsys = 'ctf';
-if numel(dir(fullfile(dirname, 'bnd4_1922_corrected.mat')))
-  load(fullfile(dirname, 'bnd4_1922_corrected.mat'));
+if numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                      '_corrected.mat'))))
+  load(fullfile(dirname, strcat('bnd4_', num2str(numverts), '_corrected.mat')));
   shells = {'scalp', 'skull', 'csf', 'cortex'};
   for i=1:4
     new_bnd_i = ft_meshrealign(cfg, new_bnd(i));
     new_bnd(i).pos = new_bnd_i.pos;
     new_bnd(i).tri = new_bnd_i.tri;
-    om_save_tri(fullfile(dirname, 'ctf', strcat('bnd4_1922_corrected_', ...
+    om_save_tri(fullfile(dirname, 'ctf', strcat('bnd4_', num2str(numverts), ...
+                                                '_corrected_', ...
                                                 char(shells(i)), '.tri')), ...
                 new_bnd(i).pos, new_bnd(i).tri);
   end
 end
-save(fullfile(dirname, 'ctf', 'bnd4_1922_corrected.mat'), 'new_bnd');
+save(fullfile(dirname, 'ctf', strcat('bnd4_', num2str(numverts), ...
+                                     '_corrected.mat')), 'new_bnd');
 
-if numel(dir(fullfile(dirname, 'mesh6_maxvoxvol2.mat')))
-  load(fullfile(dirname, 'mesh6_maxvoxvol2.mat'));
+if numel(dir(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), ...
+                                      '.mat'))))
+  load(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), '.mat')));
   transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
-  mesh.pos = ft_transform_geometry(transform, mesh.pos);
+  mesh = ft_transform_geometry(transform, mesh);
   % same as 
   %mesh = ft_meshrealign(cfg, mesh);
-  save(fullfile(dirname, 'ctf', strcat('mesh6_maxvoxvol2.mat')), 'mesh');
+  save(fullfile(dirname, 'ctf', strcat('mesh6_maxvox', ...
+                                       num2str(maxvoxelvol), '.mat')), 'mesh');
+end
+if numel(dir(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), ...
+                                      '.mat'))))
+  load(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), '.mat')));
+  transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
+  mesh = ft_transform_geometry(transform, mesh);
+  % same as 
+  %mesh = ft_meshrealign(cfg, mesh);
+  save(fullfile(dirname, 'ctf', strcat('mesh5_maxvox', ...
+                                       num2str(maxvoxelvol), '.mat')), 'mesh');
 end
 
 %% Convert cortex surface for SPHARM
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
-cortex_surf_files = {'cortex_surf40962'};
-for cortexfile = cortex_surf_files
-  load(fullfile(dirname, strcat(char(cortexfile), '.mat')));
-  cortex_surf = ft_transform_geometry(transform, cortex_surf);
-  save(fullfile(dirname, 'ctf', strcat(char(cortexfile), '.mat')), ...
-       'cortex_surf');
+
+load(fullfile(dirname, 'surf', 'lh_surf.mat'));
+bnd_lh = ft_transform_geometry(transform, bnd_lh);
+save(fullfile(dirname, 'ctf', 'lh_surf.mat'), 'bnd_lh');
+om_save_tri(fullfile(dirname, 'ctf', 'lh_surf.tri'), bnd_lh.pos, bnd_lh.tri);
+load(fullfile(dirname, 'surf', 'lh_sphere.mat'));
+lh_sphere = ft_transform_geometry(transform, lh_sphere);
+save(fullfile(dirname, 'ctf', 'lh_sphere.mat'), 'lh_sphere');
+
+load(fullfile(dirname, 'surf', 'rh_surf.mat'));
+bnd_rh = ft_transform_geometry(transform, bnd_rh);
+save(fullfile(dirname, 'ctf', 'rh_surf.mat'), 'bnd_rh');
+om_save_tri(fullfile(dirname, 'ctf', 'rh_surf.tri'), bnd_rh.pos, bnd_rh.tri);
+load(fullfile(dirname, 'surf', 'rh_sphere.mat'));
+rh_sphere = ft_transform_geometry(transform, rh_sphere);
+save(fullfile(dirname, 'ctf', 'rh_sphere.mat'), 'rh_sphere');
+
+
 
 %% Convert electrodes
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
@@ -83,7 +113,7 @@ end
 
 %% Convert sourcemodels
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
-sourcefiles = {'sourcemodel4000'};
+sourcefiles = {strcat('sourcemodel', num2str(num_sources))};
 for sourcefile = sourcefiles
 	load(fullfile(dirname, strcat(char(sourcefile), '.mat')));
 	sourcemodel = ft_transform_geometry(transform, sourcemodel);

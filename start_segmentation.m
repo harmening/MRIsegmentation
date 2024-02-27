@@ -81,9 +81,10 @@ isSmooth = true;
 mysegment(filepath, base_filename, isSmooth);
 
 %% Create meshes
-create_surface_meshes(input_img, Template, num_vertices); 
+create_surface_meshes(input_img, num_vertices); 
 %, input_coordsys, output_coordsys); 
 create_volume_meshes(input_img, maxvoxelvolume);
+create_volume_meshes_whitegray(input_img, maxvoxelvolume);
 %, input_coordsys, output_coordsys); 
 
 %% Align electrodes and fiducials (nonlinear)
@@ -105,14 +106,12 @@ dartelTpm = fullfile(cat12_path, 'templates_MNI152NLin2009cAsym',  ...
                      'Template_1_Dartel.nii'); % version 12.8
 start_cat(input_img, atlas, dartelTpm);
 read_cat(cat12_path, input_img, num_sources);
-% For spherical harmonics
-read_cat_SPHARM(cat12_path, input_img, 40962-2); %40962 is the spahrm size
 
 %% Transform electrodes, sourcemodels and meshes to ctf coordinate system
-transform_to_ctf(input_img, num_vertices);
+transform_to_ctf(input_img, num_vertices, maxvoxelvolume, num_sources);
 
 %% SPHARM
-spharm_dir = fullfile(CWD, 'weighted-SPHARM', 'sph', 'sph');
-spharm(input_img, spharm_dir);
+L = 50;
+spharm(input_img, L);
 
 end % start_segmentation
