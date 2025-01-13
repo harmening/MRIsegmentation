@@ -80,11 +80,10 @@ start_seg(input_img, T2_optional, Template, normalize);
 isSmooth = true;
 mysegment(filepath, base_filename, isSmooth);
 
-%% Create meshes
+%%% Create meshes
 create_surface_meshes(input_img, num_vertices); 
 %, input_coordsys, output_coordsys); 
 create_volume_meshes(input_img, maxvoxelvolume);
-create_volume_meshes_whitegray(input_img, maxvoxelvolume);
 %, input_coordsys, output_coordsys); 
 
 %% Align electrodes and fiducials (nonlinear)

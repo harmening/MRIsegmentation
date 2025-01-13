@@ -62,6 +62,7 @@ if numel(dir(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), ...
   load(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), '.mat')));
   transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
   mesh = ft_transform_geometry(transform, mesh);
+  mesh = rmfield(mesh, 'coordsys');
   % same as 
   %mesh = ft_meshrealign(cfg, mesh);
   save(fullfile(dirname, 'ctf', strcat('mesh6_maxvox', ...
@@ -72,6 +73,7 @@ if numel(dir(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), ...
   load(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), '.mat')));
   transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
   mesh = ft_transform_geometry(transform, mesh);
+  mesh = rmfield(mesh, 'coordsys');
   % same as 
   %mesh = ft_meshrealign(cfg, mesh);
   save(fullfile(dirname, 'ctf', strcat('mesh5_maxvox', ...
