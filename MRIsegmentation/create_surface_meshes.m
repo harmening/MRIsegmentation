@@ -97,6 +97,8 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '.mat'))))
     
     bnd = ft_prepare_mesh(cfg2, segmentedmri);
     save(fullfile(dirname, strcat('bnd4_', num2str(numverts))), 'bnd');
+    % cedalion export
+		om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), '.stl')), bnd(1).pos, bnd(1).tri);
 end
 clear segmentedmri
 
@@ -122,6 +124,8 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
     om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                                          '_corrected_cortex.tri')), ...
                 new_bnd(4).pos, new_bnd(4).tri);
+    % cedalion export
+		om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), '_smoothed.stl')), new_bnd(1).pos, new_bnd(1).tri);
 end
 
 end %create_surface_meshes
@@ -271,3 +275,31 @@ function xyzn=lpflow_trismooth(xyz,t)
       xyzn(k,:) = xyz(k,:)+vcorr;
   end
 end % lpflow_trismooth
+
+
+function om_save_stl(filename, pos, tri, solidname)
+	% Save a triangular mesh to ASCII STL (facet normals computed from geometry).
+	if nargin < 4 || isempty(solidname)
+			[~,solidname,~] = fileparts(filename);
+	end
+	fid = fopen(filename, 'w');
+	if fid < 0, error('Cannot open %s for writing.', filename); end
+	fprintf(fid, 'solid %s\n', solidname);
+
+	v1 = pos(tri(:,2),:) - pos(tri(:,1),:);
+	v2 = pos(tri(:,3),:) - pos(tri(:,1),:);
+	n  = cross(v1, v2);                         % uses the vectorized cross below
+	nn = sqrt(sum(n.^2,2)); n = n ./ (nn + eps);
+
+	for i = 1:size(tri,1)
+			fprintf(fid, '  facet normal %.6g %.6g %.6g\n', n(i,1), n(i,2), n(i,3));
+			fprintf(fid, '    outer loop\n');
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,1),1), pos(tri(i,1),2), pos(tri(i,1),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,2),1), pos(tri(i,2),2), pos(tri(i,2),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,3),1), pos(tri(i,3),2), pos(tri(i,3),3));
+			fprintf(fid, '    endloop\n');
+			fprintf(fid, '  endfacet\n');
+	end
+	fprintf(fid, 'endsolid %s\n', solidname);
+	fclose(fid);
+end
