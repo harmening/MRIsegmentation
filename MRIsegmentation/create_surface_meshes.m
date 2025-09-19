@@ -1,6 +1,6 @@
 function create_surface_meshes(input_img, numvertices, input_coordsys, ...
                                output_coordsys)
-% 
+%
 % Input:        input_img <string> fullpath to folder, where the results of
 %                                  mysegment.m are stored
 %               numvertices <integer> number of desired mesh vertices.
@@ -23,7 +23,7 @@ function create_surface_meshes(input_img, numvertices, input_coordsys, ...
 % create_surface_meshes('/tmp/head/1/'); expects outputs in directory
 % /tmp/head/1/ with input files named: mask_air.nii, mask_skin.nii,
 % mask_bone.nii, mask_csf.nii, mask_gray.nii, mask_white.nii
-% 
+%
 % (c) Nils Harmening, Daniel Miklody, May 2020
 % Neurotechnology group, Technische Universität Berlin, Germany
 
@@ -70,7 +70,7 @@ if ~numel(dir(fullfile(dirname,'segmentedmri.mat')))
     segmentedmri.skull(:,:,1) = 0;
     segmentedmri.csf(:,:,1:2) = 0;
     segmentedmri.whitegray(:,:,1:3) = 0;
-    
+
     fields = {'air','brain'};
     segmentedmri = rmfield(segmentedmri,fields);
     save(fullfile(dirname,'segmentedmri'), 'segmentedmri');
@@ -86,7 +86,7 @@ end
 
 %% Build surface meshes (4 meshes)
 if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '.mat'))))
-    load(fullfile(dirname,'segmentedmri'));   
+    load(fullfile(dirname,'segmentedmri'));
     fields = {'white', 'gray'};
     segmentedmri = rmfield(segmentedmri,fields);
     cfg2 = [];
@@ -94,9 +94,16 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '.mat'))))
     cfg2.numvertices = [numverts numverts numverts numverts];
     cfg2.transform = segmentedmri.transform;
     cfg2.method = 'projectmesh'; %'cgalsurf'
-    
+
     bnd = ft_prepare_mesh(cfg2, segmentedmri);
     save(fullfile(dirname, strcat('bnd4_', num2str(numverts))), 'bnd');
+    % cedalion export
+    scalp.pos = bnd(1).pos;
+    scalp.tri = bnd(1).tri;
+    invtransform = inv(mri.transform);
+    scalp = ft_transform_geometry(invtransform, scalp);
+    om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), ...
+                                         '.stl')), scalp.pos, scalp.tri);
 end
 clear segmentedmri
 
@@ -122,6 +129,15 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
     om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                                          '_corrected_cortex.tri')), ...
                 new_bnd(4).pos, new_bnd(4).tri);
+    % cedalion export
+    new_bnd = ft_convert_units(new_bnd,'mm');
+    scalp.pos = new_bnd(1).pos;
+    scalp.tri = new_bnd(1).tri;
+    invtransform = inv(mri.transform);
+    scalp = ft_transform_geometry(invtransform, scalp);
+    om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), ...
+                                         '_smoothed.stl')), ...
+                scalp.pos, scalp.tri);
 end
 
 end %create_surface_meshes
@@ -132,7 +148,7 @@ end %create_surface_meshes
 function [nrm] = normals(pnt, tri, opt)
   % Compute the surface normals of a triangular mesh for each triangle or for
   % each vertex.
-  % Adapted from fieldtrip/private/normals.m 
+  % Adapted from fieldtrip/private/normals.m
 
 	npnt = size(pnt,1);
 	ntri = size(tri,1);
@@ -147,7 +163,7 @@ function [nrm] = normals(pnt, tri, opt)
 	v3 = pnt(tri(:,3),:) - pnt(tri(:,1),:);
 	nrm_tri = cross(v2, v3);
 	if strcmp(opt, 'faces')
-	  % normalise 
+	  % normalise
 	  nrm = nrm_tri ./ (sqrt(sum(nrm_tri.^2, 2)) * ones(1,3));
 
         elseif strcmp(opt, 'vertices')
@@ -221,8 +237,8 @@ end %correct_bnd_errors
 
 function xyzn=lpflow_trismooth(xyz,t)
   % Laplace flow mesh smoothing for vertex ring
-  % 
-  % Reference:    1) Zhang and Hamza, (2006) Vertex-based anisotropic 
+  %
+  % Reference:    1) Zhang and Hamza, (2006) Vertex-based anisotropic
   %               smoothing of 3D mesh data, IEEE CCECE
   % Acknowledgement:
   %               Q. Fang: iso2mesh (http://iso2mesh.sf.net)
@@ -233,7 +249,7 @@ function xyzn=lpflow_trismooth(xyz,t)
   % Version:      1
   % JOK 300709
 
-  % I/O check: 
+  % I/O check:
   if nargin~=2
       error('Wrong # of input')
   end
@@ -271,3 +287,31 @@ function xyzn=lpflow_trismooth(xyz,t)
       xyzn(k,:) = xyz(k,:)+vcorr;
   end
 end % lpflow_trismooth
+
+
+function om_save_stl(filename, pos, tri, solidname)
+	% Save a triangular mesh to ASCII STL (facet normals computed from geometry).
+	if nargin < 4 || isempty(solidname)
+			[~,solidname,~] = fileparts(filename);
+	end
+	fid = fopen(filename, 'w');
+	if fid < 0, error('Cannot open %s for writing.', filename); end
+	fprintf(fid, 'solid %s\n', solidname);
+
+	v1 = pos(tri(:,2),:) - pos(tri(:,1),:);
+	v2 = pos(tri(:,3),:) - pos(tri(:,1),:);
+	n  = cross(v1, v2);                         % uses the vectorized cross below
+	nn = sqrt(sum(n.^2,2)); n = n ./ (nn + eps);
+
+	for i = 1:size(tri,1)
+			fprintf(fid, '  facet normal %.6g %.6g %.6g\n', n(i,1), n(i,2), n(i,3));
+			fprintf(fid, '    outer loop\n');
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,1),1), pos(tri(i,1),2), pos(tri(i,1),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,2),1), pos(tri(i,2),2), pos(tri(i,2),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,3),1), pos(tri(i,3),2), pos(tri(i,3),3));
+			fprintf(fid, '    endloop\n');
+			fprintf(fid, '  endfacet\n');
+	end
+	fprintf(fid, 'endsolid %s\n', solidname);
+	fclose(fid);
+end

@@ -1,4 +1,4 @@
-function read_cat(cat12_path, input_img, num_sources);
+function read_cat(cat12_path, input_img, num_sources, num_cortex_verts);
 %
 % Input:        cat12_path <string> fullpath to cat12 installation.
 %               input_img <string> fullpath to T1 MRI image to be segmented by
@@ -16,13 +16,24 @@ function read_cat(cat12_path, input_img, num_sources);
 % Example:
 % read_cat('/usr/local/cat12', '/tmp/head/1/T1.nii', 2000);
 % Created sourcemodel is stored at the location of the input_img.
-% 
+%
 % (c) Nils Harmening, May 2020
 % Neurotechnology group, Technische Universität Berlin, Germany
 
+if nargin < 4 || isempty(num_cortex_verts)
+      num_cortex_verts = 60000;
+end
+
 [dirname, name, ext] = fileparts(input_img);
-if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
-                                       '.mat'))))
+
+cortexmesh_fn_mat  = fullfile(dirname, sprintf('mask_brain%d.mat',  num_cortex_verts));
+cortexmesh_fn_tri  = fullfile(dirname, sprintf('mask_brain%d.tri',  num_cortex_verts));
+cortexmesh_fn_stl  = fullfile(dirname, sprintf('mask_brain%d.stl',  num_cortex_verts));
+
+if (~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
+                                       '.mat')))) || ...
+    ~numel(dir(cortexmesh_fn_stl)))
+
   %% Important CAT12 output files
   fn_tess_lh = fullfile(dirname, 'surf', strcat('lh.central.', name, '.gii'));
   fn_tess_rh = fullfile(dirname, 'surf', strcat('rh.central.', name, '.gii'));
@@ -30,7 +41,7 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
   fn_tess_rsph = fullfile(dirname, 'surf', strcat('rh.sphere.', name, '.gii'));
   fn_thick_lh = fullfile(dirname, 'surf', strcat('lh.thickness.', name));
   fn_thick_rh = fullfile(dirname, 'surf', strcat('rh.thickness.', name));
-    
+
   %% Import CAT surfaces
   % left pial
   if ~isempty(fn_tess_lh)
@@ -58,6 +69,32 @@ if ~numel(dir(fullfile(dirname, strcat('sourcemodel', num2str(num_sources), ...
       save(fullfile(dirname, 'surf', 'rh_sphere.mat'), 'rh_sphere');
       om_save_tri(fullfile(dirname, 'surf', 'rh_sphere.tri'), rh_sphere.pos, rh_sphere.tri);
   end
+
+  %% cedalion export (detailed CAT12 cortical surface mesh (NOT shifted inward))
+  if exist('bnd_lh','var') && exist('bnd_rh','var') && ...
+     (~exist(cortexmesh_fn_mat,'file') || ~exist(cortexmesh_fn_tri,'file'))
+
+      num_vertshemi_cortex = max(1, round(num_cortex_verts/2));
+      disp(['CORTEX MESH> Downsampling left hemi to ~', num2str(num_vertshemi_cortex), ' vertices.']);
+      [cort_lh_low, ~, ~] = tess_downsize(bnd_lh, num_vertshemi_cortex);
+
+      disp(['CORTEX MESH> Downsampling right hemi to ~', num2str(num_vertshemi_cortex), ' vertices.']);
+      [cort_rh_low, ~, ~] = tess_downsize(bnd_rh, num_vertshemi_cortex);
+
+      cortex_mesh = tess_concatenate({cort_lh_low, cort_rh_low}, ...
+                      sprintf('cortex_%dV', size(cort_lh_low.pos,1) + size(cort_rh_low.pos,1)), 'Cortex');
+
+      % Save as one merged, clean mesh
+      %save(cortexmesh_fn_mat, 'cortex_mesh');
+      %om_save_tri(cortexmesh_fn_tri, cortex_mesh.pos, cortex_mesh.tri);
+      mri = ft_read_mri(input_img);
+      invtransform = inv(mri.transform);
+      cortex_mesh = ft_transform_geometry(invtransform, cortex_mesh);
+      om_save_stl(cortexmesh_fn_stl, cortex_mesh.pos, cortex_mesh.tri);
+  end
+
+
+
 
 
   %% Import CAT12 cortical thicknesses
@@ -222,7 +259,7 @@ function [NewTessMat, I, J] = tess_downsize(bnd, newNbVertices)
   J = [];
   oldNbVertices = size(bnd.pos, 1);
   if (newNbVertices >= oldNbVertices)
-        disp(sprintf('TESS> Surface has ', num2str(oldNbVertices), ... 
+        disp(sprintf('TESS> Surface has ', num2str(oldNbVertices), ...
                      'vertices out of ', num2str(newNbVertices)));
         newNbVertices = oldNbVertices;
   end
@@ -230,7 +267,7 @@ function [NewTessMat, I, J] = tess_downsize(bnd, newNbVertices)
 	% Prepare variables
 	bnd.tri    = double(bnd.tri);
 	bnd.pos = double(bnd.pos);
-	dsFactor = newNbVertices / size(bnd.pos, 1); 
+	dsFactor = newNbVertices / size(bnd.pos, 1);
   % Matlab's reducepatch:
   % Reduce number of vertices
   [NewTessMat.tri, NewTessMat.pos] = reducepatch(bnd.tri, bnd.pos, ...
@@ -244,13 +281,13 @@ function [NewTessMat, I, J] = tess_downsize(bnd, newNbVertices)
   % Re-order the vertices in the faces
   iSortFaces(J) = 1:length(J);
   NewTessMat.tri = iSortFaces(NewTessMat.tri);
-  % Set the 
-  J = (1:length(J))'; 
+  % Set the
+  J = (1:length(J))';
 end %tess_downsize
 
 
 function new_bnd = tess_concatenate(bnds, NewComment, fileType)
-	% Concatenate tesselletions 
+	% Concatenate tesselletions
   % Adapted from brainstorm
 	new_bnd = [];
     new_bnd.pos = [];
@@ -273,7 +310,7 @@ function new_bnd = tess_concatenate(bnds, NewComment, fileType)
         old_bnd = bnds(iFile);
         isSave = 0;
     end
-		
+
 	% Detect if right/left hemisphere
     if ~isempty(strfind(old_bnd.Comment, 'lh.')) || ...
           ~isempty(strfind(old_bnd.Comment, 'Lhemi')) || ...
@@ -331,7 +368,7 @@ function new_bnd = tess_concatenate(bnds, NewComment, fileType)
     new_bnd.tri    = [new_bnd.tri; old_bnd.tri + offsetVertices];
     new_bnd.pos = [new_bnd.pos; old_bnd.pos];
 
-		
+
 
 		% Concatenate FreeSurfer registration spheres
     if isfield(old_bnd, 'Reg') && isfield(old_bnd.Reg, 'Sphere') && ...
@@ -344,7 +381,7 @@ function new_bnd = tess_concatenate(bnds, NewComment, fileType)
                                       old_bnd.Reg.Sphere.pos];
         end
     end
-    % Concatenate BrainSuite registration squares    
+    % Concatenate BrainSuite registration squares
     if isfield(old_bnd, 'Reg') && isfield(old_bnd.Reg, 'Square') && ...
           isfield(old_bnd.Reg.Square, 'pos') && ~isempty(old_bnd.Reg.Square.pos)
         if ~isfield(new_bnd, 'Reg') || ~isfield(new_bnd.Reg, 'Square') || ...
@@ -435,3 +472,31 @@ function [c] = cross(a,b)
 	c = [a(:,2).*b(:,3)-a(:,3).*b(:,2) a(:,3).*b(:,1)-a(:,1).*b(:,3) ...
        a(:,1).*b(:,2)-a(:,2).*b(:,1)];
 end %cross
+
+
+function om_save_stl(filename, pos, tri, solidname)
+	% Save a triangular mesh to ASCII STL (facet normals computed from geometry).
+	if nargin < 4 || isempty(solidname)
+			[~,solidname,~] = fileparts(filename);
+	end
+	fid = fopen(filename, 'w');
+	if fid < 0, error('Cannot open %s for writing.', filename); end
+	fprintf(fid, 'solid %s\n', solidname);
+
+	v1 = pos(tri(:,2),:) - pos(tri(:,1),:);
+	v2 = pos(tri(:,3),:) - pos(tri(:,1),:);
+	n  = cross(v1, v2);                         % uses the vectorized cross below
+	nn = sqrt(sum(n.^2,2)); n = n ./ (nn + eps);
+
+	for i = 1:size(tri,1)
+			fprintf(fid, '  facet normal %.6g %.6g %.6g\n', n(i,1), n(i,2), n(i,3));
+			fprintf(fid, '    outer loop\n');
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,1),1), pos(tri(i,1),2), pos(tri(i,1),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,2),1), pos(tri(i,2),2), pos(tri(i,2),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,3),1), pos(tri(i,3),2), pos(tri(i,3),3));
+			fprintf(fid, '    endloop\n');
+			fprintf(fid, '  endfacet\n');
+	end
+	fprintf(fid, 'endsolid %s\n', solidname);
+	fclose(fid);
+end
