@@ -1,7 +1,8 @@
 # MRIsegmentation
 [![DOI](https://zenodo.org/badge/457134654.svg)](https://zenodo.org/badge/latestdoi/457134654)
 ### Automatic MRI segmentation pipeline for consistent [FEM](https://en.wikipedia.org/wiki/Finite_element_method) and [BEM](https://en.wikipedia.org/wiki/Boundary_element_method) mesh creation from MRI scans of human heads
-**0. <ins>[Install prerequisites](#Prerequisites)</ins>**<br>
+**0. <ins>[Install prerequisites and start the pipeline](#prerequisites)</ins>**<br>
+
 **1. <ins>[Translation to ACPC-coordinate system](#translation-to-acpc)<ins>**<br>
 **2. <ins>[Tissue segmentation (Scalp, Skull, CSF, White Matter, Gray Matter)](#tissue-segmentation)</ins>**<br>
 **3. <ins>[Surface and Volume Mesh construction](#mesh-construction)</ins>**<br>
@@ -9,9 +10,12 @@
 **5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-alignement)</ins>**<br>
 **6. <ins>[Cortical sourcemodel creation](#sourcemodel-creation)</ins>**<br>
 **7. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
-**8. <ins>[Representing the cortical surface in Spherical Harmonics (SPHARM)](#representing-the-cortical-surface-in-Spherical-Harmonics-(SPHARM))</ins>**<br>
-**9. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
-**A. <ins>[References](#references)</ins>**<br>
+**8. <ins>[Representing the cortical surface in Spherical Harmonics (SPHARM)](#representing-the-cortical-surface-in-spherical-harmonics)</ins>**<br>
+**9. <ins>[Labeling with parcellation atlas](#parcellation-labels)</ins>**<br>
+
+**A1. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
+**A2. <ins>[Citing](#citing)</ins>**<br>
+**A3. <ins>[References](#references)</ins>**<br>
 <br>
 <br>
 
@@ -19,13 +23,14 @@
 ## Prerequisites
 ### This segmentation pipeline connects these awesome open source projects:
 * [Automatic Temporal Registration Algorithm (ATRA)](https://www.nitrc.org/projects/art) [[1]](#ref1)
-* [Statistical Parametric Mapping (SPM12)](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/) <br>
+* [Statistical Parametric Mapping (SPM12)](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/) [[2]](#ref2)
 * [Andy's tools](https://www.parralab.org/segment/) [[3]](#ref3)
 * [iso2mesh](http://iso2mesh.sourceforge.net)	[[4]](#ref4)
 * [Computational Anatomy Toolbox (CAT12)](http://www.neuro.uni-jena.de/cat/)	[[5]](#ref5)
 * [fieldtrip](http://www.fieldtriptoolbox.org/) [[6]](#ref6)
 * [weighted SPHARM](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/) [[7]](#ref7)
 * [Open Access Series of Imaging Studies (OASIS)](http://oasis-brains.org/) [[8]](#ref8) <br>
+* [Schaefer2018 Brain Parcelalation Atlas](https://github.com/ThomasYeoLab/CBIG/tree/v0.14.3-Update_Yeo2011_Schaefer2018_labelname/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal) [[9]](#ref9) <br>
 <br>
 
 <!--- 
@@ -90,8 +95,10 @@ $ rm atra1.0_*.tar; rm atra1.0_*.tar.gz;
 ### How to start segmentation:
 - The MRI scan needs to be in NIfTI file format (.nii or .nii.gz).
 ```bash
-# Change parameters in start_segmentation.m and run 
+# Change parameters in start_segmentation.m (EEG pipeline) and run 
 $ matlab -r "start_segmentation(./example_head/T1.nii); exit;"
+# For fNIRS/DOT run
+$ matlab -r "start_segmentation_cedalion(./example_head/T1.nii); exit;"
 ```
 <!--- 
 # Or alternatively in parallel:
@@ -171,12 +178,21 @@ voxel-wise transformation mapping from the eTPM (in MNI space) to the individual
  - Transformation of meshes, electrode positions and sourcemodels to coordinate systems, that are based on individual fiducical positions (e.g. CTF).
  - The individual fiducials (NAS, LPA, RPA) are gained through SPMs nonlinear mapping from the eTPM template.<br>
 <br>
+
+## Representing the cortical surface in Spherical Harmonics
+ - The weighed spherical harmonic (weighted-SPHARM) representation can express the cortical surface as a weighted linear combination of spherical harmonics.
+ - Since SPHARM is a better basis for the proper description of the cortex folding as the euclidean space, it is used in many different applications [[7]](#ref7).<br>
 <br>
 
 
-## Representing the cortical surface in Spherical Harmonics (SPHARM)
- - The weighed spherical harmonic (weighted-SPHARM) representation can express the cortical surface as a weighted linear combination of spherical harmonics.
- - Since SPHARM is a better basis for the proper description of the cortex folding as the euclidean space, it is used in many different applications [[7]](#ref7).
+## Parcellation labels
+- Cortical parcellation of the CAT12 cortical surface based registration
+<img align="right" width="250" src="images/parcellation.png"> <br>
+  of the hemsipheres to spheres. Examplarily integretated is the <br>
+  Schaefer2018 atlas [[9]](#ref9).
+- It is a widely used parcellation of the human cerebral cortex based on <br>
+  intrinsic functional connectivity MRI.<br>
+<br>
 
 
 
@@ -295,3 +311,6 @@ The whole robust segmentation pipeline can be run via `main.m` or parallelized v
 <!---  \cite{Chung2007}  --->
 <a id="ref8">[8]</a>  Daniel S. Marcus, Tracy H. Wang, Jamie Parker, John G. Csernansky, John C. Morris, Randy L. Buckner. "Open Access Series of Imaging Studies (OASIS): Cross-sectional MRI Data in Young, Middle Aged, Nondemented, and Demented Older Adults" *Journal of Cognitive Neuroscience*, (2007): **19**(9), 1498-1507. [``doi:10.1162/jocn.2007.19.9.1498``](https://doi.org/10.1162/jocn.2007.19.9.1498). <br> 
 <!--- \cite{OASIS2007}  --->
+<a id="ref9">[9]</a>  Alexander Schaefer, Ru Kong, Evan M. Gordon, Timothy O. Laumann, Xi-Nian Zuo, Avram J. Holmes, Simon B. Eickhoff, B. T. Thomas Yeo. "Local-Global Parcellation of the Human Cerebral Cortex from Intrinsic Functional Connectivity MRI" *Cerebral Cortex*, (2018): **28**(9), 3095–3114. [``doi:10.1093/cercor/bhx179``](https://doi.org/10.1093/cercor/bhx179). <br>
+<!---  \cite{Schaefer2018}  --->
+

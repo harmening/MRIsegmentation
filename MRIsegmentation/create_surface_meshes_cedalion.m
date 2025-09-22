@@ -1,5 +1,5 @@
-function create_surface_meshes(input_img, numvertices, input_coordsys, ...
-                               output_coordsys)
+function create_surface_meshes_cedalion(input_img, numvertices, input_coordsys, ...
+                                        output_coordsys)
 %
 % Input:        input_img <string> fullpath to folder, where the results of
 %                                  mysegment.m are stored
@@ -91,12 +91,27 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '.mat'))))
     segmentedmri = rmfield(segmentedmri,fields);
     cfg2 = [];
     cfg2.tissue = {'scalp','skull','csf','whitegray'};
-    cfg2.numvertices = [numverts numverts numverts numverts];
+    cfg2.numvertices = [numverts numverts numverts numverts numverts];
     cfg2.transform = segmentedmri.transform;
-    cfg2.method = 'projectmesh'; %'cgalsurf'
+    cfg2.method = 'iso2mesh'; %'projectmesh' 
 
     bnd = ft_prepare_mesh(cfg2, segmentedmri);
     save(fullfile(dirname, strcat('bnd4_', num2str(numverts))), 'bnd');
+    % cedalion export
+    scalp.pos = bnd(1).pos;
+    scalp.tri = bnd(1).tri;
+    invtransform = inv(mri.transform);
+    scalp = ft_transform_geometry(invtransform, scalp);
+    om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), ...
+                                         '.stl')), scalp.pos, scalp.tri);
+
+    whitegray.pos = bnd(4).pos;
+    whitegray.tri = bnd(4).tri;
+    invtransform = inv(mri.transform);
+    whitegray = ft_transform_geometry(invtransform, whitegray);
+    om_save_stl(fullfile(dirname, strcat('mask_brain', num2str(numverts), ...
+                                         '.stl')), whitegray.pos, whitegray.tri);
+
 end
 clear segmentedmri
 
@@ -113,15 +128,26 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
     om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                                          '_corrected_scalp.tri')), ...
                 new_bnd(1).pos, new_bnd(1).tri);
-    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
-                                         '_corrected_skull.tri')), ...
-                new_bnd(2).pos, new_bnd(2).tri);
-    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
-                                         '_corrected_csf.tri')), ...
-                new_bnd(3).pos, new_bnd(3).tri);
-    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
-                                         '_corrected_cortex.tri')), ...
-                new_bnd(4).pos, new_bnd(4).tri);
+    %om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+    %                                     '_corrected_skull.tri')), ...
+    %            new_bnd(2).pos, new_bnd(2).tri);
+    %om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+    %                                     '_corrected_csf.tri')), ...
+    %            new_bnd(3).pos, new_bnd(3).tri);
+    %om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+    %                                     '_corrected_cortex.tri')), ...
+    %            new_bnd(4).pos, new_bnd(4).tri);
+    % cedalion export
+    new_bnd = ft_convert_units(new_bnd,'mm');
+    scalp.pos = new_bnd(1).pos;
+    scalp.tri = new_bnd(1).tri;
+    invtransform = inv(mri.transform);
+    scalp = ft_transform_geometry(invtransform, scalp);
+    om_save_stl(fullfile(dirname, strcat('mask_scalp', num2str(numverts), ...
+                                         '_smoothed.stl')), ...
+                scalp.pos, scalp.tri);
+    write_obj(fullfile(dirname, 'mask_scalp.obj'), scalp.pos, scalp.tri);
+
 end
 
 end %create_surface_meshes
@@ -271,3 +297,39 @@ function xyzn=lpflow_trismooth(xyz,t)
       xyzn(k,:) = xyz(k,:)+vcorr;
   end
 end % lpflow_trismooth
+
+
+function om_save_stl(filename, pos, tri, solidname)
+	% Save a triangular mesh to ASCII STL (facet normals computed from geometry).
+	if nargin < 4 || isempty(solidname)
+			[~,solidname,~] = fileparts(filename);
+	end
+	fid = fopen(filename, 'w');
+	if fid < 0, error('Cannot open %s for writing.', filename); end
+	fprintf(fid, 'solid %s\n', solidname);
+
+	v1 = pos(tri(:,2),:) - pos(tri(:,1),:);
+	v2 = pos(tri(:,3),:) - pos(tri(:,1),:);
+	n  = cross(v1, v2);                         % uses the vectorized cross below
+	nn = sqrt(sum(n.^2,2)); n = n ./ (nn + eps);
+
+	for i = 1:size(tri,1)
+			fprintf(fid, '  facet normal %.6g %.6g %.6g\n', n(i,1), n(i,2), n(i,3));
+			fprintf(fid, '    outer loop\n');
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,1),1), pos(tri(i,1),2), pos(tri(i,1),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,2),1), pos(tri(i,2),2), pos(tri(i,2),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,3),1), pos(tri(i,3),2), pos(tri(i,3),3));
+			fprintf(fid, '    endloop\n');
+			fprintf(fid, '  endfacet\n');
+	end
+	fprintf(fid, 'endsolid %s\n', solidname);
+	fclose(fid);
+end
+
+
+function write_obj(path, V, F)
+    fid = fopen(path,'w'); assert(fid>0, 'Cannot write OBJ');
+    for i=1:size(V,1), fprintf(fid, 'v %.6f %.6f %.6f\n', V(i,1), V(i,2), V(i,3)); end
+    for i=1:size(F,1), fprintf(fid, 'f %d %d %d\n', F(i,1), F(i,2), F(i,3)); end
+    fclose(fid);
+end
