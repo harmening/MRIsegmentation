@@ -86,4 +86,8 @@ start_cat(input_img, atlas, dartelTpm);
 
 atlas_dir = fullfile(CWD, 'Schaefer2018_Parcellations');
 label_subject_and_write_json(input_img, atlas_dir, num_cortex_verts);
+
+%% python MNE output
+make_mne_freesurfer_like(input_img, num_vertices);
+
 end % start_segmentation
