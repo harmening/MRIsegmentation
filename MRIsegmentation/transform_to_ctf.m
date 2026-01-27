@@ -23,6 +23,7 @@ mkdir(fullfile(dirname, 'ctf'));
 
 %% Load fiducials
 load(fullfile(dirname, 'fiducials_nonlinear.mat'));
+fiducials_aligned = ft_convert_units(fiducials_aligned, 'mm');
 nas = fiducials_aligned.chanpos(1,:);
 lpa = fiducials_aligned.chanpos(2,:);
 rpa = fiducials_aligned.chanpos(3,:);
@@ -54,31 +55,71 @@ if numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                 new_bnd(i).pos, new_bnd(i).tri);
   end
 end
-save(fullfile(dirname, 'ctf', strcat('bnd4_', num2str(numverts), ...
-                                     '_corrected.mat')), 'new_bnd');
+
+new_bnd = [];
+new_bnd.coordsys = 'ctf';
+if numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                      '_hartmut_corrected.mat'))))
+  load(fullfile(dirname, strcat('bnd4_', num2str(numverts), '_hartmut_corrected.mat')));
+  shells = {'scalp', 'skull', 'csf', 'cortex'};
+  for i=1:4
+    new_bnd_i = ft_meshrealign(cfg, new_bnd(i));
+    new_bnd(i).pos = new_bnd_i.pos;
+    new_bnd(i).tri = new_bnd_i.tri;
+    om_save_tri(fullfile(dirname, 'ctf', strcat('bnd4_', num2str(numverts), ...
+                                                '_hartmut_corrected_', ...
+                                                char(shells(i)), '.tri')), ...
+                new_bnd(i).pos, new_bnd(i).tri);
+  end
+  save(fullfile(dirname, 'ctf', strcat('bnd4_', num2str(numverts), ...
+                                       '_hartmut_corrected.mat')), 'new_bnd');
+end
+
 
 if numel(dir(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), ...
-                                      '.mat'))))
-  load(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), '.mat')));
+                                      '_hartmut.mat'))))
+  load(fullfile(dirname, strcat('mesh6_maxvox', num2str(maxvoxelvol), '_hartmut.mat')));
   transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
   mesh = ft_transform_geometry(transform, mesh);
   mesh = rmfield(mesh, 'coordsys');
   % same as 
   %mesh = ft_meshrealign(cfg, mesh);
   save(fullfile(dirname, 'ctf', strcat('mesh6_maxvox', ...
-                                       num2str(maxvoxelvol), '.mat')), 'mesh');
+                                       num2str(maxvoxelvol), '_hartmut.mat')), 'mesh');
+  savemsh(mesh.pos, [mesh.tet mesh.tetlabel], ...
+	  fullfile(dirname, 'ctf', strcat('mesh6_maxvox', num2str(maxvoxelvol), ...
+			     	   	  '_hartmut.msh')), mesh.tissues);
 end
+
+
+
 if numel(dir(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), ...
                                       '.mat'))))
   load(fullfile(dirname, strcat('mesh5_maxvox', num2str(maxvoxelvol), '.mat')));
   transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
   mesh = ft_transform_geometry(transform, mesh);
-  mesh = rmfield(mesh, 'coordsys');
+  mesh = rmfield(mesh, 'coordsys')
   % same as 
   %mesh = ft_meshrealign(cfg, mesh);
   save(fullfile(dirname, 'ctf', strcat('mesh5_maxvox', ...
                                        num2str(maxvoxelvol), '.mat')), 'mesh');
 end
+
+
+
+
+%% Convert electrodes
+transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
+elecfiles = {'standard_1005' 'standard_1010' 'standard_1020'};
+for elecfile = elecfiles
+  if numel(dir(fullfile(dirname, strcat('elec_', char(elecfile), '.mat'))))
+    load(fullfile(dirname, strcat('elec_', char(elecfile), '.mat')));
+    elec_aligned = ft_transform_geometry(transform, elec_aligned);
+    save(fullfile(dirname, 'ctf', strcat('elec_', char(elecfile), '.mat')), ...
+         'elec_aligned');
+  end
+end
+
 
 %% Convert cortex surface for SPHARM
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
@@ -99,19 +140,6 @@ load(fullfile(dirname, 'surf', 'rh_sphere.mat'));
 rh_sphere = ft_transform_geometry(transform, rh_sphere);
 save(fullfile(dirname, 'ctf', 'rh_sphere.mat'), 'rh_sphere');
 
-
-
-%% Convert electrodes
-transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');
-elecfiles = {'standard_1005' 'standard_1010' 'standard_1020'};
-for elecfile = elecfiles
-  if numel(dir(fullfile(dirname, strcat('elec_', char(elecfile), '.mat'))))
-    load(fullfile(dirname, strcat('elec_', char(elecfile), '.mat')));
-    elec_aligned = ft_transform_geometry(transform, elec_aligned);
-    save(fullfile(dirname, 'ctf', strcat('elec_', char(elecfile), '.mat')), ...
-         'elec_aligned');
-  end
-end
 
 %% Convert sourcemodels
 transform = ft_headcoordinates(nas, lpa, rpa, 'ctf');

@@ -70,33 +70,48 @@ if ~numel(dir(fullfile(dirname,'segmentedmri.mat')))
     segmentedmri.skull(:,:,1) = 0;
     segmentedmri.csf(:,:,1:2) = 0;
     segmentedmri.whitegray(:,:,1:3) = 0;
-
-    fields = {'air','brain'};
-    segmentedmri = rmfield(segmentedmri,fields);
+    
     save(fullfile(dirname,'segmentedmri'), 'segmentedmri');
 end
 clear c1 c2 c3 c4 c5 c6
 
+load(fullfile(dirname,'segmentedmri'));
+
+
 if nargin > 3
   segmentedmri.anatomy = mri.anatomy;
   segmentedmri = ft_convert_coordsys(segmentedmri, output_coordsys);
-  save(fullfile(dirname,strcat('segmentedmri_',output_coordsys)), ...
+  save(fullfile(dirname,strcat('segmentedmri_bem_',output_coordsys)), ...
        'segmentedmri');
 end
 
+
 %% Build surface meshes (4 meshes)
 if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '.mat'))))
-    load(fullfile(dirname,'segmentedmri'));
     fields = {'white', 'gray'};
+    segmentedmri = rmfield(segmentedmri,fields);
+    fields = {'air','brain'};
     segmentedmri = rmfield(segmentedmri,fields);
     cfg2 = [];
     cfg2.tissue = {'scalp','skull','csf','whitegray'};
     cfg2.numvertices = [numverts numverts numverts numverts];
     cfg2.transform = segmentedmri.transform;
-    cfg2.method = 'projectmesh'; %'cgalsurf'
+    cfg2.method = 'projectmesh'; %'cgalmesh'; %
 
     bnd = ft_prepare_mesh(cfg2, segmentedmri);
     save(fullfile(dirname, strcat('bnd4_', num2str(numverts))), 'bnd');
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_scalp.tri')), ...
+                bnd(1).pos, bnd(1).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_skull.tri')), ...
+                bnd(2).pos, bnd(2).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_csf.tri')), ...
+                bnd(3).pos, bnd(3).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_cortex.tri')), ...
+                bnd(4).pos, bnd(4).tri);
 end
 clear segmentedmri
 
@@ -107,7 +122,7 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
     error_threshold = 25;
     smooth_meshes = [1 2 3 4];
     new_bnd = correct_bnd_errors(bnd, error_threshold, smooth_meshes);
-    new_bnd = ft_convert_units(new_bnd,'m');
+    new_bnd = ft_convert_units(new_bnd,'mm');
     save(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                                   '_corrected')), 'new_bnd');
     om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
@@ -121,6 +136,69 @@ if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                 new_bnd(3).pos, new_bnd(3).tri);
     om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
                                          '_corrected_cortex.tri')), ...
+                new_bnd(4).pos, new_bnd(4).tri);
+end
+
+
+
+
+%% Build surface meshes for HArtMuT
+
+load(fullfile(dirname,'segmentedmri'));
+segmentedmri = fix_terminal_cumOR_and_prepend(segmentedmri, 46, 5, 'zeros');
+save(fullfile(dirname,'segmentedmri_bem_hartmut'), 'segmentedmri');
+
+
+%% Build surface meshes (4 meshes)
+if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), '_hartmut.mat'))))
+    fields = {'white', 'gray'};
+    segmentedmri = rmfield(segmentedmri,fields);
+    fields = {'air','brain'};
+    segmentedmri = rmfield(segmentedmri,fields);
+    cfg2 = [];
+    cfg2.tissue = {'scalp','skull','csf','whitegray'};
+    cfg2.numvertices = [numverts+300 numverts numverts numverts];
+    cfg2.transform = segmentedmri.transform;
+    cfg2.method = 'projectmesh'; %'cgalmesh'; %
+
+    bnd = ft_prepare_mesh(cfg2, segmentedmri);
+    save(fullfile(dirname, strcat('bnd4_', num2str(numverts), '_hartmut')), 'bnd');
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_scalp.tri')), ...
+                bnd(1).pos, bnd(1).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_skull.tri')), ...
+                bnd(2).pos, bnd(2).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_csf.tri')), ...
+                bnd(3).pos, bnd(3).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_cortex.tri')), ...
+                bnd(4).pos, bnd(4).tri);
+end
+clear segmentedmri
+
+%% Correct outliers and smooth skull&brain&csf
+if ~numel(dir(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                       '_hartmut_corrected.mat'))))
+    load(fullfile(dirname, strcat('bnd4_', num2str(numverts), '_hartmut')));
+    error_threshold = 25;
+    smooth_meshes = [1 2 3 4];
+    new_bnd = correct_bnd_errors(bnd, error_threshold, smooth_meshes);
+    new_bnd = ft_convert_units(new_bnd,'mm');
+    save(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                  '_hartmut_corrected')), 'new_bnd');
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_corrected_scalp.tri')), ...
+                new_bnd(1).pos, new_bnd(1).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_corrected_skull.tri')), ...
+                new_bnd(2).pos, new_bnd(2).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_corrected_csf.tri')), ...
+                new_bnd(3).pos, new_bnd(3).tri);
+    om_save_tri(fullfile(dirname, strcat('bnd4_', num2str(numverts), ...
+                                         '_hartmut_corrected_cortex.tri')), ...
                 new_bnd(4).pos, new_bnd(4).tri);
 end
 
@@ -271,3 +349,155 @@ function xyzn=lpflow_trismooth(xyz,t)
       xyzn(k,:) = xyz(k,:)+vcorr;
   end
 end % lpflow_trismooth
+
+
+function om_save_stl(filename, pos, tri, solidname)
+	% Save a triangular mesh to ASCII STL (facet normals computed from geometry).
+	if nargin < 4 || isempty(solidname)
+			[~,solidname,~] = fileparts(filename);
+	end
+	fid = fopen(filename, 'w');
+	if fid < 0, error('Cannot open %s for writing.', filename); end
+	fprintf(fid, 'solid %s\n', solidname);
+
+	v1 = pos(tri(:,2),:) - pos(tri(:,1),:);
+	v2 = pos(tri(:,3),:) - pos(tri(:,1),:);
+	n  = cross(v1, v2);                         % uses the vectorized cross below
+	nn = sqrt(sum(n.^2,2)); n = n ./ (nn + eps);
+
+	for i = 1:size(tri,1)
+			fprintf(fid, '  facet normal %.6g %.6g %.6g\n', n(i,1), n(i,2), n(i,3));
+			fprintf(fid, '    outer loop\n');
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,1),1), pos(tri(i,1),2), pos(tri(i,1),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,2),1), pos(tri(i,2),2), pos(tri(i,2),3));
+			fprintf(fid, '      vertex %.6g %.6g %.6g\n', pos(tri(i,3),1), pos(tri(i,3),2), pos(tri(i,3),3));
+			fprintf(fid, '    endloop\n');
+			fprintf(fid, '  endfacet\n');
+	end
+	fprintf(fid, 'endsolid %s\n', solidname);
+	fclose(fid);
+end
+
+
+function seg2 = fix_terminal_cumOR_and_prepend(seg, nPad, nSlices, padModeOther)
+% Like previous function, but in padModeOther='copyterminal' it ALSO fills the
+% original inferior empty slices (1..kT-1) for each non-scalp tissue with its
+% own terminal content (slice kT), so tissues don't "disappear" below.
+%
+% Assumes dim3 is inferior->superior increasing.
+
+if nargin < 4 || isempty(padModeOther)
+  padModeOther = 'zeros';
+end
+
+assert(isfield(seg,'scalp') && ndims(seg.scalp)==3, 'seg.scalp must be a 3D volume.');
+assert(isfield(seg,'transform') && all(size(seg.transform)==[4 4]), 'seg.transform (4x4) is required.');
+
+seg2 = seg;
+
+dim = size(seg.scalp);
+nx = dim(1); ny = dim(2); nz = dim(3);
+
+% tissue-like fields
+fn = fieldnames(seg);
+tissues = {};
+for i=1:numel(fn)
+  f = fn{i};
+  v = seg.(f);
+  if (islogical(v) || isnumeric(v)) && ndims(v)==3 && all(size(v)==dim)
+    tissues{end+1} = f; %#ok<AGROW>
+  end
+end
+
+% -------- SCALP: walking cumulative OR over first nSlices non-empty region --------
+scalpBin = (seg2.scalp ~= 0);
+has = squeeze(any(any(scalpBin,1),2));
+k0 = find(has, 1, 'first');
+if isempty(k0), error('Scalp segmentation is empty.'); end
+kEnd = min(nz, k0 + nSlices - 1);
+
+scalpClass = class(seg2.scalp);
+cum = (seg2.scalp(:,:,kEnd) ~= 0);   % start from kEnd
+
+for k = (kEnd-1):-1:k0
+  cum = cum | (seg2.scalp(:,:,k) ~= 0);
+  seg2.scalp(:,:,k) = cast(cum, scalpClass);
+end
+
+% fill all slices below k0 (including any empty slices) with final cum
+if k0 > 1
+  seg2.scalp(:,:,1:k0-1) = repmat(cast(cum, scalpClass), 1, 1, k0-1);
+end
+
+scalpPadSlice = cast(cum, scalpClass);
+
+% -------- OTHER TISSUES: optionally fill their inferior empty region too --------
+if strcmpi(padModeOther, 'copyterminal')
+  for it = 1:numel(tissues)
+    t = tissues{it};
+    if strcmpi(t,'scalp')
+      continue;
+    end
+    vol = seg2.(t);
+
+    bin = (vol ~= 0);
+    hasT = squeeze(any(any(bin,1),2));
+    kT = find(hasT, 1, 'first');
+
+    if ~isempty(kT) && kT > 1
+      % Fill 1..kT-1 with slice kT (this is the key correction)
+      seg2.(t)(:,:,1:kT-1) = repmat(vol(:,:,kT), 1, 1, kT-1);
+    end
+  end
+end
+
+% -------- Prepend nPad slices to ALL tissues (keep alignment) --------
+newNz = nz + nPad;
+
+for it = 1:numel(tissues)
+  t = tissues{it};
+  vol = seg2.(t);
+  cls = class(vol);
+
+  if islogical(vol)
+    volNew = false(nx, ny, newNz);
+  else
+    volNew = zeros(nx, ny, newNz, cls);
+  end
+
+  if strcmpi(t,'scalp')
+    padSlice = scalpPadSlice;
+  else
+    switch lower(padModeOther)
+      case 'zeros'
+        if islogical(vol), padSlice = false(nx, ny);
+        else,             padSlice = zeros(nx, ny, cls);
+        end
+      case 'copyterminal'
+        % now that we've filled inferior region, slice 1 is guaranteed non-empty if tissue exists
+        padSlice = vol(:,:,1);
+      otherwise
+        error('Unknown padModeOther: %s', padModeOther);
+    end
+  end
+
+  volNew(:,:,1:nPad) = repmat(padSlice, 1, 1, nPad);
+  volNew(:,:,nPad+1:end) = vol;
+
+  seg2.(t) = volNew;
+end
+
+seg2.dim = [nx ny newNz];
+
+% update transform once (we prepended for all tissues)
+Shift = eye(4);
+Shift(3,4) = -nPad;
+seg2.transform = seg2.transform * Shift;
+
+fprintf(['Scalp: walking OR fill k0=%d..kEnd=%d, filled below k0. ', ...
+         'Other tissues: padModeOther=%s (and filled inferior empty region if copyterminal). ', ...
+         'Prepended %d slices.\n'], ...
+         k0, kEnd, padModeOther, nPad);
+
+end
+

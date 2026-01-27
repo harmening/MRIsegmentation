@@ -9,9 +9,10 @@
 **4. <ins>[Correction and smoothing of segmentation mistakes](#correction-and-smoothing)</ins>**<br>
 **5. <ins>[Alignement of electrodes (and sourcemodels)](#electrode-alignement)</ins>**<br>
 **6. <ins>[Cortical sourcemodel creation](#sourcemodel-creation)</ins>**<br>
-**7. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
-**8. <ins>[Representing the cortical surface in Spherical Harmonics (SPHARM)](#representing-the-cortical-surface-in-spherical-harmonics)</ins>**<br>
-**9. <ins>[Labeling with parcellation atlas](#parcellation-labels)</ins>**<br>
+**7. <ins>[Artefact sourcemodel creation](#hartmuts-artefact-sourcemodel)</ins>**<br>
+**8. <ins>[Transformation to fiducial based coordinate systems](#transformation-to-fiducial-based-coordinate-systems)</ins>**<br>
+**9. <ins>[Representing the cortical surface in Spherical Harmonics (SPHARM)](#representing-the-cortical-surface-in-spherical-harmonics)</ins>**<br>
+**10. <ins>[Labeling with parcellation atlas](#parcellation-labels)</ins>**<br>
 
 **A1. <ins>[Troubleshooting](#troubleshooting)</ins>**<br>
 **A2. <ins>[Citing](#citing)</ins>**<br>
@@ -28,9 +29,10 @@
 * [iso2mesh](http://iso2mesh.sourceforge.net)	[[4]](#ref4)
 * [Computational Anatomy Toolbox (CAT12)](http://www.neuro.uni-jena.de/cat/)	[[5]](#ref5)
 * [fieldtrip](http://www.fieldtriptoolbox.org/) [[6]](#ref6)
-* [weighted SPHARM](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/) [[7]](#ref7)
-* [Open Access Series of Imaging Studies (OASIS)](http://oasis-brains.org/) [[8]](#ref8) <br>
-* [Schaefer2018 Brain Parcelalation Atlas](https://github.com/ThomasYeoLab/CBIG/tree/v0.14.3-Update_Yeo2011_Schaefer2018_labelname/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal) [[9]](#ref9) <br>
+* [HArtMuT](http://www.hartmut.berlin/) [[7]](#ref7)
+* [weighted SPHARM](https://pages.stat.wisc.edu/~mchung/softwares/weighted-SPHARM/) [[8]](#ref8)
+* [Open Access Series of Imaging Studies (OASIS)](http://oasis-brains.org/) [[9]](#ref9) <br>
+* [Schaefer2018 Brain Parcelalation Atlas](https://github.com/ThomasYeoLab/CBIG/tree/v0.14.3-Update_Yeo2011_Schaefer2018_labelname/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal) [[10]](#ref10) <br>
 <br>
 
 <!--- 
@@ -79,6 +81,8 @@ $ unzip Huang_et_al_2013.zip -d ./Huang_et_al_2013
 $ rm Huang_et_al_2013.zip
 # Minor changes to make new_segment storing the nonlinear warp
 $ sed -i.bak 's/warp\.write = \[0 0\]/warp\.write = \[1 1\]/' Huang_et_al_2013/start_seg.m  && rm Huang_et_al_2013/start_seg.m.bak
+# Load HArtMuT Individual Warp
+$ git clone https://github.com/harmening/hartmut.git
 ```
 - The coordinate systems are defined by the MRI scanner's coordinate systems. For optional [translation into the ACPC-coordinate system](#translation-to-acpc) before segmentation, download [atra for linux](https://www.nitrc.org/frs/download.php/10393/atra1.0_LinuxCentOS6.7.tar.gz/?i_agree=1&release_id=3672) (register at nitrc.org, agree to the license terms), move the downloaded `atra1.0_LinuxCentOS6.7.tar.gz` into `./art` and run the following commands in a terminal:<br>
 ```bash
@@ -148,7 +152,7 @@ $ python parallel.py ./data/MRI_scan1/T1.nii ./data/MRI_scan2/T1.img ./data/MRI_
 <br>
 
 ## Correction and smoothing 
-- Tests on the [OASIS1 database](http://oasis-brains.org/) of 416 human heads [[8]](#ref8) revealed, that 
+- Tests on the [OASIS1 database](http://oasis-brains.org/) of 416 human heads [[9]](#ref9) revealed, that 
 <img align="right" width="250" src="images/cortex_correct.gif"> <br>
   10 out of 416 segmentations needed further correction of the cortical <br>
   surface mesh only (see segmentation error and correction to the right).
@@ -167,21 +171,29 @@ voxel-wise transformation mapping from the eTPM (in MNI space) to the individual
 <br>
 
 ## Sourcemodel creation
-- EEG source model estimation by using CATs [[5]](#ref5) accurate cortex segmentation and
+- EEG sourcemodel estimation by using CATs [[5]](#ref5) accurate cortex segmentation
 <img align="right" width="250" src="images/sourcemodel_cat4000.png"> <br>
- cortical thickness determination.
-- A source model surface mesh is created at 2/3 distance between the gray and white matter surface using the cortical thickness estimation.
-- The mesh vertices constitute the source model positions. The equivalent current dipoles are orientated according to their outwards pointing mesh normals.
+ and cortical thickness determination.
+- A sourcemodel surface mesh is created at 2/3 distance between the gray and white matter surface using the cortical thickness estimation.
+- The mesh vertices constitute the sourcemodel positions. The equivalent current dipoles are orientated according to their outwards pointing mesh normals.
 <br>
 
-## Transformation to fiducial based coordinate systems
+## HArtMuT's artefact sourcemodel
+- EEG ocular and muscular sourcemodel creation à la HArtMuT [[7]](#ref7)
+<img align="right" width="250" src="images/hartmut.png"> <br>
+is enabled by the additional creation of neck-extended meshes. 
+- The small HArtMuT artefact sourcemodel is warped to the individual skull and scalp anatomy using a MATLAB translation of HArtMuT's [Individual Warp](https://github.com/harmening/HArtMuT/tree/main/individualwarp).
+- The derived artefact sourcemodel allows not only computing cortical leadfields, but also ocular and muscular leadfields (that constitute major confounders in EEG data).
+<br>
+
+## Transformation to fiducial-based coordinate systems
  - Transformation of meshes, electrode positions and sourcemodels to coordinate systems, that are based on individual fiducical positions (e.g. CTF).
  - The individual fiducials (NAS, LPA, RPA) are gained through SPMs nonlinear mapping from the eTPM template.<br>
 <br>
 
 ## Representing the cortical surface in Spherical Harmonics
  - The weighed spherical harmonic (weighted-SPHARM) representation can express the cortical surface as a weighted linear combination of spherical harmonics.
- - Since SPHARM is a better basis for the proper description of the cortex folding as the euclidean space, it is used in many different applications [[7]](#ref7).<br>
+ - Since SPHARM is a better basis for the proper description of the cortex folding as the euclidean space, it is used in many different applications [[8]](#ref8).<br>
 <br>
 
 
@@ -189,7 +201,7 @@ voxel-wise transformation mapping from the eTPM (in MNI space) to the individual
 - Cortical parcellation of the CAT12 cortical surface based registration
 <img align="right" width="250" src="images/parcellation.png"> <br>
   of the hemsipheres to spheres. Examplarily integretated is the <br>
-  Schaefer2018 atlas [[9]](#ref9).
+  Schaefer2018 atlas [[10]](#ref10).
 - It is a widely used parcellation of the human cerebral cortex based on <br>
   intrinsic functional connectivity MRI.<br>
 <br>
@@ -307,10 +319,13 @@ The whole robust segmentation pipeline can be run via `main.m` or parallelized v
 <!---  \cite{Gaser2016} --->
 <a id="ref6">[6]</a>  Robert Oostenveld, Pascal Fries, Eric Maris, Jan-Mathijs Schoffelen. "FieldTrip: Open Source Software for Advanced Analysis of MEG, EEG, and Invasive Electrophysiological Data" *Computational intelligence and neuroscience*, (2011), 156869. [``doi:10.1155/2011/156869``](https://doi.org/10.1155/2011/156869). <br> 
 <!---  \cite{Fieldtrip11}  --->
-<a id="ref7">[7]</a>  Moo K. Chung, Kim M. Dalton, Li Shen, Alan C. Evans, Richard J. Davidson. "Weighted Fourier Series Representation and Its Application to Quantifying the Amount of Gray Matter" *IEEE Transactions on Mecical Imaging*, (2007): **26**(4). [``10.1109/TMI.2007.892519``](https://doi.org/10.1109/TMI.2007.892519). <br>
+<a id="ref7">[7]</a>  Nils Harmening, Marius Klug, Klaus Gramann, Daniel Miklody. "HArtMuT - modeling eye and muscle contributors in neuroelectric imaging" *Journal of Neural Engineering*, (2022), **19**066041. [``doi:10.1088/1741-2552/aca8ce``](https://doi.org/10.1088/1741-2552/aca8ce). <br> 
+<!---  \cite{Harmening22}  --->
+<a id="ref8">[8]</a>  Moo K. Chung, Kim M. Dalton, Li Shen, Alan C. Evans, Richard J. Davidson. "Weighted Fourier Series Representation and Its Application to Quantifying the Amount of Gray Matter" *IEEE Transactions on Mecical Imaging*, (2007): **26**(4). [``10.1109/TMI.2007.892519``](https://doi.org/10.1109/TMI.2007.892519). <br>
 <!---  \cite{Chung2007}  --->
-<a id="ref8">[8]</a>  Daniel S. Marcus, Tracy H. Wang, Jamie Parker, John G. Csernansky, John C. Morris, Randy L. Buckner. "Open Access Series of Imaging Studies (OASIS): Cross-sectional MRI Data in Young, Middle Aged, Nondemented, and Demented Older Adults" *Journal of Cognitive Neuroscience*, (2007): **19**(9), 1498-1507. [``doi:10.1162/jocn.2007.19.9.1498``](https://doi.org/10.1162/jocn.2007.19.9.1498). <br> 
+<a id="ref9">[9]</a>  Daniel S. Marcus, Tracy H. Wang, Jamie Parker, John G. Csernansky, John C. Morris, Randy L. Buckner. "Open Access Series of Imaging Studies (OASIS): Cross-sectional MRI Data in Young, Middle Aged, Nondemented, and Demented Older Adults" *Journal of Cognitive Neuroscience*, (2007): **19**(9), 1498-1507. [``doi:10.1162/jocn.2007.19.9.1498``](https://doi.org/10.1162/jocn.2007.19.9.1498). <br> 
 <!--- \cite{OASIS2007}  --->
-<a id="ref9">[9]</a>  Alexander Schaefer, Ru Kong, Evan M. Gordon, Timothy O. Laumann, Xi-Nian Zuo, Avram J. Holmes, Simon B. Eickhoff, B. T. Thomas Yeo. "Local-Global Parcellation of the Human Cerebral Cortex from Intrinsic Functional Connectivity MRI" *Cerebral Cortex*, (2018): **28**(9), 3095–3114. [``doi:10.1093/cercor/bhx179``](https://doi.org/10.1093/cercor/bhx179). <br>
+<a id="ref10">[10]</a>  Alexander Schaefer, Ru Kong, Evan M. Gordon, Timothy O. Laumann, Xi-Nian Zuo, Avram J. Holmes, Simon B. Eickhoff, B. T. Thomas Yeo. "Local-Global Parcellation of the Human Cerebral Cortex from Intrinsic Functional Connectivity MRI" *Cerebral Cortex*, (2018): **28**(9), 3095–3114. [``doi:10.1093/cercor/bhx179``](https://doi.org/10.1093/cercor/bhx179). <br>
 <!---  \cite{Schaefer2018}  --->
+
 

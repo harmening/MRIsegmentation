@@ -53,21 +53,23 @@ num_vertices = 1922; % number of vertices of every surface mesh
 maxvoxelvolume = 2; % max volume per tetrahedra of volume mesh
 num_sources = 4000; % number of cortical sources in sourcemodel
 %10000
+do_prepocessing = true;
 
 
 %% Optional preprocessing + translation to ACPC (uncomment if you don't want to
 %% preprocess)
-if T2_optional
-  preprocessing({input_img, T2_optional})
-  [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
-  T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
-  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
-else
-  T2_optional = [];
-  preprocessing({input_img});
-  input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+if do_prepocessing
+  if T2_optional
+    preprocessing({input_img, T2_optional})
+    [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
+    T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
+    input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+  else
+    T2_optional = [];
+    preprocessing({input_img});
+    input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+  end
 end
-
 
 
 %% Start segmentation
@@ -75,16 +77,18 @@ Template = fullfile(CWD, 'Huang_et_al_2013', 'eTPM.nii');
 normalize = false; 
 start_seg(input_img, T2_optional, Template, normalize);
 
-%% Andy's tools
+%% Andy's tools (post processing)
 [filepath, base_filename, ext] = fileparts(input_img);
 isSmooth = true;
 mysegment(filepath, base_filename, isSmooth);
 
-%%% Create meshes
+
+%% Create meshes
 create_surface_meshes(input_img, num_vertices); 
 %, input_coordsys, output_coordsys); 
 create_volume_meshes(input_img, maxvoxelvolume);
 %, input_coordsys, output_coordsys); 
+
 
 %% Align electrodes and fiducials (nonlinear)
 [dirname, base_filename, ext] = fileparts(input_img);
@@ -92,7 +96,26 @@ load(fullfile(dirname, strcat('bnd4_', num2str(num_vertices), ...
               '_corrected.mat')));
 align_nonlinear(input_img, new_bnd(1));
 
-%% Create sourcemodel
+
+%% Create artefact sourcemodel a la HArtMuT
+[dirname, base_filename, ext] = fileparts(input_img);
+hartmut_path = fullfile(CWD, 'HArtMuT'); % path to HArtMuT folder
+if do_preprocessing % only if preprocessing was done (meshes are in ACPC)
+  mean_pnt = [0 0 0];
+  warp_HArtMuT_sources( ...
+      fullfile(hartmut_path, 'individualwarp', 'NYhead', 'scalp.stl'), ...
+      fullfile(hartmut_path, 'individualwarp', 'NYhead', 'skull.stl'), ...
+      fullfile(dirname, strcat('bnd4_', num2str(num_vertices), ...
+                               '_hartmut_corrected_scalp.tri')), ...
+      fullfile(dirname, strcat('bnd4_', num2str(num_vertices), ...
+                               '_hartmut_corrected_skull.tri')), ...
+      fullfile(hartmut_path, 'HArtMuTmodels', 'HArtMuT_NYhead_small.mat'), ...
+      fullfile(dirname, 'artefact_sourcemodel_HArtMuT_small.mat'), ...
+      mean_pnt);
+end
+
+
+%% Create cortical sourcemodel
 cat12_path = fullfile(CWD, 'fieldtrip', 'external', 'spm12', 'toolbox', ...
                       'cat12');
 atlas = fullfile(cat12_path, 'atlases_surfaces', ...
