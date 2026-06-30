@@ -53,12 +53,12 @@ num_vertices = 1922; % number of vertices of every surface mesh
 maxvoxelvolume = 2; % max volume per tetrahedra of volume mesh
 num_sources = 4000; % number of cortical sources in sourcemodel
 %10000
-do_prepocessing = true;
+do_preprocessing = true;
 
 
 %% Optional preprocessing + translation to ACPC (uncomment if you don't want to
 %% preprocess)
-if do_prepocessing
+if do_preprocessing
   if T2_optional
     preprocessing({input_img, T2_optional})
     [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
@@ -112,6 +112,15 @@ if do_preprocessing % only if preprocessing was done (meshes are in ACPC)
       fullfile(hartmut_path, 'HArtMuTmodels', 'HArtMuT_NYhead_small.mat'), ...
       fullfile(dirname, 'artefact_sourcemodel_HArtMuT_small.mat'), ...
       mean_pnt);
+end
+
+
+%% Export labelled bnd for the HArtMuT FieldTrip example (acpc frame)
+% Bundles the neck-extended surfaces, tissue labels and one eye's warped ocular
+% candidates into mri_bnd.mat, the file example_ft_dipolefitting_hartmut.m loads
+% on its 'mri' path. Must run before transform_to_ctf so it stays in acpc.
+if do_preprocessing
+  export_fieldtrip_hartmut_bnd(input_img, num_vertices, 'mri_bnd.mat');
 end
 
 
