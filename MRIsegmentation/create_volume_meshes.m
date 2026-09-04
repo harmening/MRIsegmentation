@@ -33,6 +33,9 @@ end
 
 %% Create segmentation struct
 mri = ft_read_mri(input_img);
+if ~isfield(mri, 'unit')
+  mri.unit = 'mm';
+end
 if nargin > 2
   segmentedmri.coordsys = input_coordsys;
 else

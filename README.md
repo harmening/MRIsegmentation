@@ -82,7 +82,7 @@ $ rm Huang_et_al_2013.zip
 # Minor changes to make new_segment storing the nonlinear warp
 $ sed -i.bak 's/warp\.write = \[0 0\]/warp\.write = \[1 1\]/' Huang_et_al_2013/start_seg.m  && rm Huang_et_al_2013/start_seg.m.bak
 # Load HArtMuT Individual Warp
-$ git clone https://github.com/harmening/hartmut.git
+$ git clone https://github.com/harmening/hartmut.git HArtMuT
 ```
 - The coordinate systems are defined by the MRI scanner's coordinate systems. For optional [translation into the ACPC-coordinate system](#translation-to-acpc) before segmentation, download [atra for linux](https://www.nitrc.org/frs/download.php/10393/atra1.0_LinuxCentOS6.7.tar.gz/?i_agree=1&release_id=3672) (register at nitrc.org, agree to the license terms), move the downloaded `atra1.0_LinuxCentOS6.7.tar.gz` into `./art` and run the following commands in a terminal:<br>
 ```bash
