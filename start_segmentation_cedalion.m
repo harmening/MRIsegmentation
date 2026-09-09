@@ -53,6 +53,23 @@ num_vertices = 15000; % number of vertices for scalp and SPM cortex mesh
 num_cortex_verts = 15000; % number of vertices for CAT12 cortex mesh (and parcels)
 maxvoxelvolume = 2; % max volume per tetrahedra of volume mesh (for NIRFASTER)
 
+do_preprocessing = false;
+
+
+%% Optional preprocessing + translation to ACPC (uncomment if you don't want to
+%% preprocess)
+if do_preprocessing
+  if T2_optional
+    preprocessing({input_img, T2_optional})
+    [T2_filepath, T2_name, T2_ext] = fileparts(T2_optional);
+    T2_optional = fullfile(T2_filepath, strcat(T2_name, '_RAS.nii'));
+    input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+  else
+    T2_optional = [];
+    preprocessing({input_img});
+    input_img = fullfile(filepath, strcat(base_filename, '_RAS.nii'));
+  end
+end
 
 %% Start segmentation
 Template = fullfile(CWD, 'Huang_et_al_2013', 'eTPM.nii');
