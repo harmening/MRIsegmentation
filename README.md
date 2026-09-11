@@ -216,6 +216,15 @@ is enabled by the additional creation of neck-extended meshes.
   the superior pontine sulcus (VSPS). Delete all files from your MRI folder
   exept the original MRI and the file `imagelist`. Create a new file called
   `landmarks.lm` and write the voxel coordinates of AC, PC and VSPS in the first, second and third line, respectively, seperated by one whitespace. Open `imagelist`, write the fullpath into the second line of `landmarks.lm` and restart the segmentation. For more details refer to [getting started with atra](https://www.nitrc.org/account/login.php?return_to=%2Ffrs%2Fdownload.php%2F10497%2Fgettingstartedwithatra1.0.pdf&feedback=The+tool%2Fresource+administrator+has+requested+that+you+log+in+to+download+this+file.) or [atra youtube tutorial](https://www.youtube.com/watch?v=q5GBaNnjOa8).
+- `mri_convert` can fail on float-typed inputs (some MRIs, e.g. a few OASIS subjects, are distributed as float 4dfp) with `can only handle image types short and unsigned char`. Recast the volume to int16 before conversion/reorientation, e.g. with nibabel:
+  ```python
+  import nibabel as nib, numpy as np
+  img = nib.load(fname)
+  hdr = img.header
+  hdr.set_data_dtype(np.int16)
+  data = np.nan_to_num(img.get_fdata()).astype(np.int16)
+  nib.save(nib.Nifti1Image(data, img.affine, hdr), fname)
+  ```
 <!--- 
 mri = ft_read_mri('/fullpath/to/example.nii');
 cfg = []; cfg.anaparameter = 'anatomy';
