@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# mriseg - run MATLAB code non-interactively inside the MRIsegmentation image.
+#
+# Usage:
+#   mriseg "<matlab statements>"
+#   mriseg --help
+#
+# The statements are executed after mriseg_init (which puts FieldTrip, SPM12,
+# CAT12, iso2mesh, ... on the path and cd's to $MRISEG_HOME), e.g.
+#   mriseg "start_seg('/data/sub01/T1.nii', [], 'Huang_et_al_2013/eTPM.nii', false)"
+#
+# Licensing (first match wins):
+#   MLM_LICENSE_TOKEN  batch licensing token -> matlab-batch
+#   MLM_LICENSE_FILE   network license / license file -> matlab -batch
+#   otherwise          matlab -batch: online licensing through the calling user's
+#                      cached MathWorks sign-in (image default, use apptainer)
+set -euo pipefail
+
+if [[ $# -ne 1 || "$1" == "-h" || "$1" == "--help" ]]; then
+    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+    exit $(( $# == 1 ? 0 : 1 ))
+fi
+
+cmd="$1"
+: "${MRISEG_HOME:=/opt/MRIsegmentation}"
+
+# MATLAB wants a writable home for preferences. Under docker --user or podman
+# --userns=keep-id with a foreign uid, $HOME may not exist or be read-only.
+if [[ -z "${HOME:-}" || ! -w "${HOME}" ]]; then
+    export HOME="/tmp/mriseg-home-$(id -u)"
+    mkdir -p "${HOME}"
+fi
+export MATLAB_PREFDIR="${MATLAB_PREFDIR:-${HOME}/.matlab/mriseg-prefs}"
+mkdir -p "${MATLAB_PREFDIR}"
+
+# MATLAB's system() runs commands through $MATLAB_SHELL / $SHELL. Under
+# apptainer the host environment leaks in (e.g. SHELL=/usr/bin/zsh, absent in
+# the image) and every system() call - CAT12's surface binaries, ATRA - would
+# fail with exit code 127.
+export MATLAB_SHELL=/bin/bash
+export SHELL=/bin/bash
+# Usage telemetry (DDUX) crashed MATLAB inside the container; telemetry only.
+export MW_DDUX_FORCE_ENABLE=false
+
+# Private temp directory unless the caller provides one: iso2mesh writes
+# fixed-name intermediate files to <tempdir>/iso2mesh-<user>, so concurrent
+# sessions sharing /tmp corrupt each other's meshes. MATLAB's tempdir follows
+# TMPDIR.
+if [[ -z "${MRISEG_KEEP_TMPDIR:-}" && "${TMPDIR:-/tmp}" == "/tmp" ]]; then
+    export TMPDIR
+    TMPDIR="$(mktemp -d /tmp/mriseg.XXXXXX)"
+    trap 'rm -rf "${TMPDIR}"' EXIT
+fi
+
+# mriseg_init sets up the path; matlab -batch exits non-zero on any error so the
+# calling workflow sees the failure.
+batch="mriseg_init; ${cmd}"
+
+if [[ -n "${MLM_LICENSE_TOKEN:-}" ]]; then
+    runner=(matlab-batch)
+else
+    runner=(matlab -batch)
+fi
+
+# Always run against a private headless X server: figure export (e.g. the
+# CAT12 report) needs a display in some code paths, and a DISPLAY inherited from
+# the host (apptainer) only yields X authorization errors.
+unset DISPLAY XAUTHORITY
+if command -v xvfb-run >/dev/null 2>&1; then
+    exec xvfb-run -a "${runner[@]}" "${batch}"
+else
+    exec "${runner[@]}" "${batch}"
+fi

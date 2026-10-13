@@ -1,0 +1,23 @@
+--- a/mysegment.m
++++ b/mysegment.m
+@@ -116,7 +116,9 @@
+ 
+ disp('removing disconnected voxels for CSF...')
+ siz = sizeOfObject(csf_temp);
+-thres = siz(4)+1;
++% keep the 3 largest components; smooth template heads (e.g. Colin27) can have
++% fewer than 4 CSF components, then there is nothing to remove
++if numel(siz) >= 4, thres = siz(4)+1; else, thres = 1; end
+ csf_temp = bwareaopen(csf_temp,thres);
+ 
+ disp('removing disconnected voxels for bone...')
+@@ -125,7 +127,8 @@
+ 
+ disp('removing disconnected voxels for skin...')
+ siz = sizeOfObject(skin_temp);
+-thres = siz(2)+1;
++% keep the largest component (if there is more than one)
++if numel(siz) >= 2, thres = siz(2)+1; else, thres = 1; end
+ skin_temp = bwareaopen(skin_temp,thres);
+ 
+ disp('removing disconnected voxels for air...')

@@ -1,0 +1,172 @@
+# Snakemake configuration for the MRIsegmentation pipeline (workflow/Snakefile)
+
+# Tab-separated sample sheet with columns: subject, t1, t2 (t2 may be empty).
+samples: config/samples.tsv
+
+# Where per-subject outputs go: <results_dir>/<subject>/...
+results_dir: results
+
+# Which pipeline to run. Mirrors the two entry scripts in the repository root:
+#   cedalion  start_segmentation_cedalion.m  (fNIRS/DOT: SPM masks, iso2mesh
+#             surface + volume meshes, CAT12 cortex with Schaefer parcels, MNE export)
+#   eeg       start_segmentation.m           (EEG: projectmesh surfaces, HArtMuT
+#             neck-extended meshes, electrodes, sourcemodel, CTF transform, SPHARM)
+pipeline: cedalion
+
+# Optional ACPC alignment with ATRA before segmentation (needs ATRA baked into
+# the image, see Dockerfile). start_segmentation.m enables it, the cedalion
+# script does not. The HArtMuT artefact sourcemodel additionally requires it.
+preprocessing: false
+
+# Tissue probability map for SPM's segmentation: eTPM (extended FOV map of
+# Andy's tools, the pipeline default) or TPM (SPM12's own tpm/TPM.nii, same six
+# classes). The eTPM fails on some template heads (e.g. Colin27: all brain
+# classes empty), where TPM works; a path to another 6-class map is accepted too.
+# Override per subject with a `tpm` column in the sample sheet.
+spm_tpm: eTPM
+
+mesh:
+  cedalion:
+    num_vertices: 15000      # scalp / SPM cortex surface mesh vertices
+    num_cortex_verts: 15000  # CAT12 cortex mesh (+ parcels) vertices
+    maxvoxelvolume: 2        # max tetrahedron volume of the volume mesh (NIRFASTER)
+  eeg:
+    num_vertices: 1922       # vertices per BEM surface
+    num_cortex_verts: 60000  # CAT12 cortex STL export (read_cat default)
+    maxvoxelvolume: 2
+    num_sources: 4000        # cortical sourcemodel dipoles
+    spharm_degree: 50        # weighted-SPHARM degree L
+
+container:
+  # apptainer | singularity | podman | docker | none
+  #   apptainer  default. Runs the image as you with your home directory, so
+  #              MATLAB licenses through the MathWorks sign-in cached by the
+  #              MATLAB on your host (Individual / online licensing). Build the
+  #              .sif from the podman image with `bash docker/build-sif.sh`.
+  #   podman/docker  need an image built with --build-arg MATLAB_LICMODE=file
+  #              and MLM_LICENSE_FILE (network license, license file below) or
+  #              MLM_LICENSE_TOKEN (batch licensing token) in your environment.
+  #   none       runs `mriseg` from the host PATH (local install of everything).
+  engine: apptainer
+  # apptainer: path to the .sif (or a docker:// URL); podman/docker: image name
+  image: mriseg.sif
+  # User the container runs as (podman/docker only):
+  #   auto     root for rootless podman (container root == host user, output
+  #            files are yours without copying the image), host otherwise
+  #   root | host (= $(id -u):$(id -g)) | keep-id (podman --userns=keep-id) | "uid:gid"
+  user: auto
+  # Bind this checkout's MRIsegmentation/ folder over the copy inside the image
+  # (at container.home, default /opt/MRIsegmentation), so edits to the pipeline
+  # code take effect without rebuilding the image.
+  bind_code: true
+  # Extra arguments appended to `apptainer exec` / `podman run`, e.g.
+  # `--security-opt label=disable` on SELinux hosts.
+  extra_args: ""
+  # Optional MATLAB license file to mount into the container (sets
+  # MLM_LICENSE_FILE; podman/docker with MATLAB_LICMODE=file only).
+  license_file: ""
+
+# Parallel FreeSurfer path (recon-all + mkheadsurf), independent of the MATLAB
+# steps. Writes results/<subject>/fs/<subject>/ (a FreeSurfer SUBJECTS_DIR
+# layout) and results/<subject>/fs/*.obj: scalp and cortex surfaces expressed in
+# 1-based voxel indices of the staged NIfTI, i.e. the same coordinates as
+# mask_scalp.obj / mask_brain.obj from the MATLAB pipeline, for direct comparison.
+freesurfer:
+  enabled: true
+  # apptainer pull freesurfer.sif docker://freesurfer/freesurfer:7.4.1
+  image: freesurfer.sif
+  # FreeSurfer license (https://surfer.nmr.mgh.harvard.edu/registration.html)
+  license: /home/eike/Projekte/ibslab/30_dev/segmentation/freesurfer_workdir/license.txt
+  # recon-all -T2 ... -T2pial when the subject has a T2
+  use_t2: true
+  # extra recon-all flags, e.g. "-3T" or "-hires"
+  recon_all_args: ""
+  # fsaverage6 atlas used by the voxel-grouping QC (and transferable to the
+  # surface): Schaefer17_600 or Schaefer17_1000, see Schaefer2018_Parcellations/
+  parcel_atlas: Schaefer17_600
+  # mris_smooth iterations for the smoothed scalp export (0 = skip)
+  scalp_smooth_iterations: 20
+  # morphological opening radius (voxels) applied to mkheadsurf's head mask to
+  # remove thin sheets from ghosting artefacts next to the head (0 = off)
+  scalp_open_radius: 1
+  # Population prior for the head mask: drop voxels that sit more than
+  # scalp_margin_mm outside the MNI305 population head (via the subject's
+  # talairach.xfm), above MNI z = 40 mm, AND are darker than scalp_dim_below in
+  # the intensity-normalised T1 (white matter = 110). Removes structures above
+  # the vertex that touch the scalp, such as the bar across the top of the
+  # Colin27 template; a head that is merely larger than the template keeps its
+  # bright scalp. Set scalp_margin_mm to null to disable.
+  scalp_margin_mm: 2
+  # Intensity (normalised T1, white matter = 110) below which such a voxel counts
+  # as artefact rather than scalp. The outer scalp rim legitimately fades to
+  # ~40-70, so a higher value shaves the crown instead of only cutting the
+  # artefact.
+  scalp_dim_below: 45
+  threads: 8               # recon-all -parallel -openmp N
+  mem_mb: 12000
+  # Decimate the high-resolution cortex surface (~320k vertices) for image
+  # reconstruction, keeping every vertex backed by cortical-ribbon voxels
+  # (workflow/scripts/fs_decimate_mesh.py). Runs on the host, not in the
+  # FreeSurfer container: it needs cedalion (plus trimesh, pymeshlab, rtree).1
+  decimate:
+    enabled: true
+    # fs_export surface -> decimation schedule (the last value is the target
+    # vertex count). Surfaces listed under ribbon_support get the voxel
+    # feedback loop, which needs the intermediate steps; the others are
+    # decimated in one step per entry.
+    targets:
+      cortex_pial: [30000, 28000, 27000, 26000, 25000]
+      scalp_smoothed: [10000]
+    # Surfaces whose vertices must keep cortical-ribbon voxels mapped onto them
+    # (image reconstruction). The scalp carries optodes and bounds the head,
+    # but nothing is reconstructed on it, so it needs no support.
+    ribbon_support: [cortex_pial, cortex_white]
+    voxel_stealing_from: 26000 # enable voxel stealing at/below this count
+    quality_radius: 15         # voxels; radius over which a vertex without
+                               # voxel support protects its surroundings
+    # Schaefer (or other) surface annotations for parcel-aware mapping, with
+    # {fs_subj} and {hemi} placeholders. They must come from the same recon-all
+    # run as the mesh. null = decimate without parcels, which also disables the
+    # head model export (it needs a parcel per vertex). Rule fs_annot writes
+    # these from parcel_atlas above; point this elsewhere to use your own.
+    annot: "{fs_subj}/label/{hemi}.Schaefer2018_600Parcels_17Networks_order.annot"
+    # Interpreter with cedalion; null = the one running Snakemake.
+    python: null
+    mem_mb: 16000
+  # Assemble results/<subject>/headmodel/, a cedalion head model directory in the
+  # layout of the published hm_colin27 / hm_icbm152 datasets: the decimated
+  # cortex and scalp surfaces, the tissue masks, the per-vertex parcel and MNI152
+  # table, the ribbon-voxel-to-vertex matrix and the parcel colours. Needs
+  # decimate.annot (a parcel per vertex) and cortex_pial among decimate.targets.
+  headmodel:
+    enabled: true
+    # What the image's own RAS already is, i.e. how the mni152_* columns of
+    # brain_vertex_coordinates.csv are reached:
+    #   talairach  an individual scanner RAS; recon-all's talairach.xfm registers
+    #              it to MNI305, then cedalion's fixed MNI305 -> MNI152 affine.
+    #   mni305     the image is a template distributed in MNI305 (Colin27), so
+    #              only the MNI305 -> MNI152 step is needed. What the published
+    #              cedalion head models did.
+    #   mni152     the image is already in MNI152 (the ICBM152 templates):
+    #              nothing to do, its own affine is the answer.
+    # Overridable per subject with an mni_from column in the sample sheet.
+    mni_from: talairach
+  # Build the 10-10 landmark system on the head model's scalp, from the four
+  # fiducials Nz, Iz, LPA and RPA. Those are not derived here: every subject
+  # points at its own markup file with a `landmarks` column in the sample sheet
+  # (see config/landmarks/README.md).
+  landmarks:
+    enabled: true
+    # Fiducials snapped onto the scalp before construction; [] uses them as
+    # given. Literature fiducials are defined on another head's scalp, so some
+    # offset from this subject's surface is normal.
+    snap: [Nz, Iz, LPA, RPA]
+    # A fiducial further than this from the scalp aborts the rule: that is what
+    # a markup file in the wrong coordinate system looks like.
+    max_snap_mm: 20
+
+resources:
+  # MATLAB/SPM/CAT12 are mostly single-threaded; threads mainly limits how many
+  # subjects run at once with --cores N.
+  threads: 1
+  mem_mb: 16000

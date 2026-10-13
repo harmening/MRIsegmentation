@@ -58,6 +58,8 @@ segmentedmri.skull = c3.anatomy;
 segmentedmri.csf = c4.anatomy;
 segmentedmri.gray = c5.anatomy;
 segmentedmri.white = c6.anatomy;
+% drop labelled voxels outside the head (ghosting artefacts etc.)
+segmentedmri = restrict_to_head(segmentedmri, input_img);
 clear c1 c2 c3 c4 c5 c6
 
 

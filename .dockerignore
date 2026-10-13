@@ -1,0 +1,12 @@
+# Keep the build context small: only the pipeline code, templates and the
+# bind-mounted dependency archives are needed (see Dockerfile).
+.git
+.snakemake
+results
+workdir
+freesurfer_workdir
+nils_voxel_labels
+images
+*.log
+**/*.pyc
+*.sif

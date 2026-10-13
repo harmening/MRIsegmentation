@@ -4,3 +4,9 @@ Huang_et_al_2013
 fieldtrip
 iso2mesh
 parallel*.py
+results/
+.snakemake/
+atra1.0_*.tar.gz
+mriseg.sif
+freesurfer.sif
+__pycache__/

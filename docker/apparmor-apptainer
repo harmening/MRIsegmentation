@@ -1,0 +1,17 @@
+# AppArmor profile that lets Apptainer create unprivileged user namespaces on
+# Ubuntu >= 23.10 (kernel.apparmor_restrict_unprivileged_userns = 1). Same
+# profile the upstream Apptainer .deb installs; Ubuntu's own package lacks it,
+# which shows up as
+#   FATAL: ... Failed to create container process: Operation not permitted
+# Install with:
+#   sudo cp docker/apparmor-apptainer /etc/apparmor.d/apptainer
+#   sudo apparmor_parser -r /etc/apparmor.d/apptainer
+abi <abi/4.0>,
+include <tunables/global>
+
+profile apptainer /usr/bin/apptainer flags=(unconfined) {
+  userns,
+
+  # Site-specific additions and overrides. See local/README for details.
+  include if exists <local/apptainer>
+}

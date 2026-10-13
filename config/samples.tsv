@@ -1,0 +1,3 @@
+subject	t1	t2	tpm	mni_from	landmarks	landmarks_reference
+icbm152	/home/eike/Projekte/ibslab/30_dev/data/mri/icbm152_ext55_model_sym_2020/mni_icbm152_t1_tal_nlin_sym_55_ext.nii	/home/eike/Projekte/ibslab/30_dev/data/mri/icbm152_ext55_model_sym_2020/mni_icbm152_t2_tal_nlin_sym_55_ext.nii		mni152	config/landmarks/icbm152.mrk.json	
+colin27	/home/eike/Projekte/ibslab/30_dev/data/mri/mni_colin27_1998_nifti/colin27_t1_tal_lin.nii		TPM	mni305	config/landmarks/colin27.mrk.json	fieldtrip

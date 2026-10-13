@@ -49,7 +49,7 @@ imagelist = fullfile(filepath, 'imagelist');
 if fileID < 0
     error('Failed to open atra imagelist file because: %s', message);
 else
-    for i=numel(mri_lst)
+    for i=1:numel(mri_lst)
         fprintf(fileID, strcat(mri_lst{i},'\n'));
     end
     fclose(fileID);

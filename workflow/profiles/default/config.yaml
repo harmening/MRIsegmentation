@@ -1,0 +1,11 @@
+# Workflow profile, picked up automatically by Snakemake >= 8.
+#
+# Only rerun a job when its inputs changed (or are newer), not when the rule's
+# shell code or params changed: the shell lines embed the container runner, so
+# any tweak to it would otherwise rerun hours of CAT12 / recon-all for every
+# subject. Parameter changes that matter show up in output file names anyway
+# (bnd4_<N>, mesh6_maxvox<V>, sourcemodel<S>). Force a rerun explicitly with
+# `snakemake -R <rule>` or `--forceall`.
+rerun-triggers:
+  - mtime
+  - input

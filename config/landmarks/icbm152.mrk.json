@@ -1,0 +1,112 @@
+{
+  "@schema": "https://raw.githubusercontent.com/slicer/slicer/master/Modules/Loadable/Markups/Resources/Schema/markups-schema-v1.0.3.json",
+  "markups": [
+    {
+      "type": "Fiducial",
+      "coordinateSystem": "mni152",
+      "coordinateUnits": "mm",
+      "controlPoints": [
+        {
+          "id": 0,
+          "label": "Nz",
+          "position": [
+            0.0,
+            84.0,
+            -43.0
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "id": 1,
+          "label": "Iz",
+          "position": [
+            0.0,
+            -114.0,
+            -30.0
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "id": 2,
+          "label": "LPA",
+          "position": [
+            -75.09,
+            -19.49,
+            -47.98
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "id": 3,
+          "label": "RPA",
+          "position": [
+            76.0,
+            -19.45,
+            -47.7
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "id": 4,
+          "label": "Cz",
+          "position": [
+            0.0,
+            -9.0,
+            100.0
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        }
+      ]
+    }
+  ]
+}
